@@ -18,8 +18,8 @@ unrelated working directory.
 
 ## Scope and delivery
 
-- Produce THREE distinct short LinkedIn post options first, each with a business
-  example and its own public reading link, followed by up to FIVE new features.
+- Produce THREE distinct short LinkedIn post options first, each in a different
+  post shape (section 3) with its own public reading link, followed by up to FIVE new features.
   Prefer three different included public features; if fewer qualify, use genuinely
   different buyer/workflow angles on the verified features, not minor rewordings.
 - Public and internal features share the five-item cap. Include fewer if fewer
@@ -107,7 +107,8 @@ Create a new candidate JSON and a fresh evidence folder inside `<RUN_DIR>`. Do n
 overwrite prior successful outputs while drafting. Schema:
 
 - Top level: `date`, `posts`, `coverage`, `features`. `posts` is exactly three
-  objects with `angle` (short label), `text` (copy-ready prose), and `url` (the
+  objects with `angle` (short label), `shape` (one key from the section 3 menu,
+  different for each option), `text` (copy-ready prose), and `url` (the
   selected public reading link). Do not mix legacy `post`/`post_url` fields. Each
   URL must also occur in an included public feature's sourced evidence.
 - Each feature: `title`, `classification` (public/internal), `status`, `date`,
@@ -212,9 +213,39 @@ verified feature or justify filler.
 
 Voice: plain, casual, specific. If the `snowflake-social-writer` skill is
 available, use its Employee Advocacy voice adapted to three LinkedIn choices (no
-X posts, headlines, or summaries). 60-120 words per option, maximum 150, two to
-four ordinary paragraphs. Lead with a recognizable business problem and include
-a concrete hypothetical: "For example, a ... team could ...".
+X posts, headlines, or summaries). Length follows the shape: 35-150 words, short
+takes 60 or fewer. Ordinary short paragraphs or a short list.
+
+Vary the shape so issues do not read like a template. Each option uses a
+different shape from this menu (the renderer rejects repeats and unknown keys):
+
+- `problem_fix`: a recognizable problem, then what the feature changes.
+- `command`: one useful command, setting, or click path from the public docs,
+  what it does, and the one condition that matters. Copy syntax exactly.
+- `roundup`: two or three included public features in a line each and why each
+  is worth a look; link the most useful page among them.
+- `no_longer`: "you don't need X to do Y anymore", naming the honest catch.
+- `before_after`: a plain "Before:" line and "Now:" line, then one sentence.
+- `short_take`: two or three sentences and the link, nothing more.
+- `who_for`: addressed to the specific role that should care and why.
+
+Rotation: read `post_shapes` on the last history entry and pass it as
+`--previous-shapes`; the renderer rejects the exact same three-shape mix. Use
+`problem_fix` at most once per issue and skip it if the last issue used it.
+Pick shapes that fit the features; do not force a command when the docs have none.
+
+Write like a person sharing something useful, not a launch announcement:
+
+- Do not open every option the same way or end every option with a hedge.
+- A business example helps in some shapes; it is optional. Never repeat a stock
+  phrase such as "For example, a ... team could" across options.
+- Include a limitation only when it changes who can use it or how (edition,
+  cloud/region, preview, a separate bill, a required setting), in a few words.
+  Fuller limits belong in the sales brief, not the post.
+- Vary rhythm and length across the three options.
+
+If `<WORKDIR>/voice-samples.md` exists (the user's own past posts), match its
+phrasing, sentence length, and tone without copying claims or wording.
 
 For each option pick an included public feature and its most useful public
 reading link, not automatically the release note. Prefer a substantive official
@@ -266,7 +297,7 @@ or legal approval.
 ```bash
 python3 <SKILL_DIR>/scripts/render_brief.py <CANDIDATE_JSON> --output <RUN_DIR> \
   --evidence-dir <RUN_DIR>/evidence --smtp-source-id <SOURCE_ID_FROM_ISSUE_JSON> \
-  --require-three-posts
+  --require-three-posts --previous-shapes <SHAPES_FROM_LAST_HISTORY_ENTRY_OR_OMIT>
 ```
 
 Do not modify or bypass validators. At most two source-backed repairs; otherwise
@@ -299,7 +330,8 @@ After checks pass, copy `email-body.md`, `email-payload.json`, `smtp-message.jso
 `latest-post.md`, and `posting-check.md` to `<WORKDIR>` as latest outputs,
 preserving manually edited versions first. Keep candidate JSON and evidence in
 `<RUN_DIR>`. Append to `<WORKDIR>/history.json` only after successful writes:
-date, three topics/angles/URLs, feature titles/source URLs, source_id,
+date, three topics/angles/URLs, `post_shapes` (shape keys in option order),
+feature titles/source URLs, source_id,
 scheduled_at, run folder, delivery prepared.
 
 ## 5. Self-only delivery and verification

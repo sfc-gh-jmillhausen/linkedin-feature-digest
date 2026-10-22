@@ -1,6 +1,6 @@
 ---
 name: linkedin-feature-digest
-description: "Build and self-email a twice-weekly Snowflake Weekly Feature Digest: three copy-ready LinkedIn post options (each with a business example and the best public reading link, preferring a useful blog or guide over a bare release note) plus up to five sales feature briefs (buyer, pain, value, alternative, talk track, honest illustrative math) with decks from Compass and public Slack, product contacts, and feature channels. Evidence-gated against official public pages; sent only to the owner via safe-email-send; never posts to LinkedIn. Use whenever the user asks for a feature digest, weekly/Monday/Thursday feature brief, what shipped in Snowflake for sales, LinkedIn post ideas about new Snowflake features, release-note posts, or to set up, run, test, or schedule this digest, even if they don't name the skill."
+description: "Build and self-email a twice-weekly Snowflake Weekly Feature Digest: three copy-ready LinkedIn post options (each in a different rotating post shape, such as a useful command, a before/now, a roundup, or a short take, with the best public reading link, preferring a useful blog or guide over a bare release note) plus up to five sales feature briefs (buyer, pain, value, alternative, talk track, honest illustrative math) with decks from Compass and public Slack, product contacts, and feature channels. Evidence-gated against official public pages; sent only to the owner via safe-email-send; never posts to LinkedIn. Use whenever the user asks for a feature digest, weekly/Monday/Thursday feature brief, what shipped in Snowflake for sales, LinkedIn post ideas about new Snowflake features, release-note posts, or to set up, run, test, or schedule this digest, even if they don't name the skill."
 ---
 
 # LinkedIn Feature Digest
@@ -14,6 +14,9 @@ read-only; the only side effect is one self-addressed email.
 - "Run my feature digest", "send this week's digest", "send an example/test".
 - "Set up the LinkedIn feature digest" or "schedule it Monday and Thursday".
 - Questions about the digest format, fixtures, or a failed run.
+- "The posts all sound the same": the shape menu in `references/workflow.md`
+  section 3 controls this; saving a few of the user's own posts in
+  `<WORKDIR>/voice-samples.md` tunes the voice.
 
 Not for publishing to LinkedIn (it never posts), customer newsletters, or mass email.
 
@@ -77,8 +80,10 @@ consent choice. Offer a test send.
      fetches each public URL on the allowlisted hosts with TLS, stores bytes,
      text, and sha256.
    - `scripts/render_brief.py <candidate.json> --output <RUN_DIR> --evidence-dir
-     <RUN_DIR>/evidence --smtp-source-id <source_id> --require-three-posts`:
-     validates schema, evidence quotes, resource links, and copy rules; writes
+     <RUN_DIR>/evidence --smtp-source-id <source_id> --require-three-posts
+     [--previous-shapes <last issue's post_shapes>]`:
+     validates schema, evidence quotes, resource links, and copy rules (each post
+     needs a distinct shape; the last issue's exact shape mix is rejected); writes
      `email-body.md`, `email-payload.json`, `smtp-message.json`, `latest-post.md`.
    - `scripts/check_sender_html.py <RUN_DIR>/smtp-message.json` (run with the
      sender's environment): confirms the HTML passes the sender allowlist.

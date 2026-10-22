@@ -8,7 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from render_brief import COMPOSER, email_html, render, validate
+from render_brief import COMPOSER, POST_SHAPES, email_html, render, validate
 from source_evidence import public_urls
 
 
@@ -17,14 +17,16 @@ def example_options():
     original = data.pop("post")
     url = data.pop("post_url")
     data["posts"] = [
-        {"angle": "Audit prep", "text": original, "url": url},
+        {"angle": "Audit prep", "shape": "problem_fix", "text": original, "url": url},
         {
             "angle": "Shared planning assumptions",
+            "shape": "no_longer",
             "text": "Changing a planning assumption shouldn't mean hunting through copied queries.\n\nSnowflake schema variables hold a named, typed value beyond a single session, with separate read and write permissions.\n\nFor example, a finance team could point its scenario queries at one approved exchange-rate assumption instead of editing every copy. The queries still need to be adapted, and this isn't a historical exchange-rate table. If you've already centralized those values in a configuration table, the benefit is smaller.",
             "url": data["features"][1]["sources"][0]["url"],
         },
         {
             "angle": "Feature-serving upkeep",
+            "shape": "who_for",
             "text": "A real-time model needs a way to retrieve its inputs. That service can become another thing for the team to maintain.\n\nSnowflake's Online Feature Store provides low-latency retrieval of feature values for real-time applications. For example, a fraud team could use it to retrieve customer-spending signals while scoring a transaction.\n\nThe feature pipeline and model still need work, and serving isn't free. It gives teams a managed option to consider before building another serving layer. Available in AWS and Azure commercial regions, not Google Cloud.",
             "url": data["features"][2]["sources"][0]["url"],
         },
@@ -110,6 +112,49 @@ class PostOptionsTests(unittest.TestCase):
         rendered = email_html(data)
         self.assertIn("&lt;img", rendered)
         self.assertNotIn("<img", rendered)
+
+    def test_shapes_label_options_in_all_outputs(self):
+        data = example_options()
+        with tempfile.TemporaryDirectory() as directory:
+            output = Path(directory)
+            with patch("render_brief.verify_evidence"):
+                render(data, output, output, "linkedin-test-options", require_three_posts=True)
+            message = json.loads((output / "smtp-message.json").read_text())["messages"][0]
+            from html import unescape
+            for content in (unescape(message["html"]), message["text"], (output / "latest-post.md").read_text()):
+                for number, post in enumerate(data["posts"], 1):
+                    self.assertIn(f"Option {number}: {post['angle']} ({POST_SHAPES[post['shape']]})", content)
+
+    def test_shapes_must_be_known_distinct_and_rotated(self):
+        data = example_options()
+        data["posts"][2]["shape"] = "listicle"
+        with self.assertRaisesRegex(ValueError, "shape from"):
+            validate(data)
+        data["posts"][2]["shape"] = "problem_fix"
+        with self.assertRaisesRegex(ValueError, "different shapes"):
+            validate(data)
+        data = example_options()
+        with self.assertRaisesRegex(ValueError, "Rotate shapes"):
+            validate(data, previous_shapes=["who_for", "problem_fix", "no_longer"])
+        validate(data, previous_shapes=["who_for", "problem_fix", "command"])
+
+    def test_short_take_is_short(self):
+        data = example_options()
+        data["posts"][0]["shape"] = "short_take"
+        with self.assertRaisesRegex(ValueError, "short take"):
+            validate(data)
+
+    def test_scheduled_issue_requires_every_shape(self):
+        data = example_options()
+        del data["posts"][1]["shape"]
+        with self.assertRaisesRegex(ValueError, "shape from"):
+            validate(data)
+        for post in data["posts"]:
+            post.pop("shape", None)
+        validate(data)
+        with tempfile.TemporaryDirectory() as directory:
+            with self.assertRaisesRegex(ValueError, "shape on every"):
+                render(data, Path(directory), require_three_posts=True)
 
 
 if __name__ == "__main__":

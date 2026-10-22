@@ -33,6 +33,16 @@ FEATURE_FIELDS = (
     ("What Snowflake simplifies", "enables"),
     ("How to sell it", "talk_track"),
 )
+POST_SHAPES = {
+    "problem_fix": "Problem, then the fix",
+    "command": "One useful command",
+    "roundup": "Short roundup",
+    "no_longer": "You don't need X anymore",
+    "before_after": "Before / now",
+    "short_take": "Short take",
+    "who_for": "Who it's for",
+}
+SHORT_TAKE_MAX_WORDS = 60
 SALES_GROUPS = (
     ("The pain", (("Who cares", "buyer"), ("The pain", "pain"))),
     ("The value", (
@@ -46,6 +56,27 @@ SALES_GROUPS = (
 def post_options(data):
     """Keep historical single-post fixtures readable; new issues use posts."""
     return data.get("posts", [{"text": data.get("post"), "url": data.get("post_url")}])
+
+
+def option_title(number, post):
+    """The shape label shows the issue's variety at a glance."""
+    title = f"Option {number}: {post['angle']}"
+    return f"{title} ({POST_SHAPES[post['shape']]})" if post.get("shape") else title
+
+
+def validate_shapes(posts, previous_shapes=None):
+    shapes = [post.get("shape") for post in posts]
+    if not any(shapes):
+        return
+    if not all(shape in POST_SHAPES for shape in shapes):
+        raise ValueError("Each post needs a shape from: " + ", ".join(POST_SHAPES))
+    if len(set(shapes)) != len(shapes):
+        raise ValueError("Post options must use different shapes")
+    for post in posts:
+        if post["shape"] == "short_take" and len(post["text"].split()) > SHORT_TAKE_MAX_WORDS:
+            raise ValueError(f"A short take must be {SHORT_TAKE_MAX_WORDS} words or fewer")
+    if previous_shapes and set(shapes) == set(previous_shapes):
+        raise ValueError("Rotate shapes: this issue repeats the previous issue's exact mix")
 
 
 def email_html(data):
@@ -88,7 +119,7 @@ def email_html(data):
     ]
     for number, post in enumerate(post_options(data), 1):
         if "posts" in data:
-            parts.append(heading(f"Option {number}: {post['angle']}"))
+            parts.append(heading(option_title(number, post)))
         parts.append('<div class="post-copy">')
         parts.extend(paragraph(value, "font-size:15px;color:#123548;") for value in post["text"].split("\n\n"))
         parts += ['</div>', link(post["url"], post["url"])]
@@ -337,7 +368,7 @@ def estimate(impact):
     return label, " ".join(paragraphs)
 
 
-def validate(data):
+def validate(data, previous_shapes=None):
     date.fromisoformat(data["date"])
     posts = post_options(data)
     if "posts" in data:
@@ -351,6 +382,7 @@ def validate(data):
             raise ValueError("Post options must be distinct")
         if len({text(post["angle"]).casefold() for post in posts}) != 3:
             raise ValueError("Post option angles must be distinct")
+        validate_shapes(posts, previous_shapes)
     for post in posts:
         if not 35 <= len(text(post["text"]).split()) <= 150:
             raise ValueError("Post must be 35-150 words, excluding the link")
@@ -392,10 +424,12 @@ def validate(data):
     return data
 
 
-def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_posts=False):
-    validate(data)
+def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_posts=False, previous_shapes=None):
+    validate(data, previous_shapes)
     if require_three_posts and "posts" not in data:
         raise ValueError("Scheduled issues require three post options")
+    if require_three_posts and not all(post.get("shape") for post in data["posts"]):
+        raise ValueError("Scheduled issues require a shape on every post option")
     if smtp_source_id is not None:
         if evidence_dir is None:
             raise ValueError("SMTP output requires captured evidence")
@@ -414,7 +448,7 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
     ]
     for number, post in enumerate(post_options(data), 1):
         if "posts" in data:
-            lines.append(f"### Option {number}: {post['angle']}")
+            lines.append(f"### {option_title(number, post)}")
         lines.extend([post["text"], post["url"]])
     lines.extend([f"Post to Linkedin: {COMPOSER}", "---", "## This week's sales brief"])
     feature_number = 0
@@ -449,7 +483,7 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
     }, ensure_ascii=True, indent=2) + "\n")
     copies = []
     for number, post in enumerate(post_options(data), 1):
-        label = f"## Option {number}: {post['angle']}\n\n" if "posts" in data else ""
+        label = f"## {option_title(number, post)}\n\n" if "posts" in data else ""
         copies.append(label + post["text"] + "\n\n" + post["url"])
     (output / "latest-post.md").write_text("\n\n".join(copies) + "\n")
     if smtp_source_id is not None:
@@ -461,7 +495,7 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
             "html": email_html(data), "source_id": smtp_source_id,
         }]}
         (output / "smtp-message.json").write_text(json.dumps(batch, ensure_ascii=True, indent=2) + "\n")
-    print(json.dumps({"email_payload": str(output / "email-payload.json"), "features": len(data["features"]), "post_words": [len(post["text"].split()) for post in post_options(data)], "validation": "passed"}))
+    print(json.dumps({"email_payload": str(output / "email-payload.json"), "features": len(data["features"]), "post_words": [len(post["text"].split()) for post in post_options(data)], "post_shapes": [post.get("shape") for post in post_options(data)], "validation": "passed"}))
 
 
 if __name__ == "__main__":
@@ -471,5 +505,7 @@ if __name__ == "__main__":
     parser.add_argument("--evidence-dir", type=Path, help="Require captured public source text and verbatim excerpts")
     parser.add_argument("--smtp-source-id", help="Build self-only SMTP payload; stable issue ID prevents duplicate sends")
     parser.add_argument("--require-three-posts", action="store_true", help="Require the current three-option issue schema")
+    parser.add_argument("--previous-shapes", help="Comma-separated shapes from the last issue in history.json; an identical mix is rejected")
     args = parser.parse_args()
-    render(json.loads(args.input.read_text()), args.output, args.evidence_dir, args.smtp_source_id, args.require_three_posts)
+    previous = [shape.strip() for shape in args.previous_shapes.split(",") if shape.strip()] if args.previous_shapes else None
+    render(json.loads(args.input.read_text()), args.output, args.evidence_dir, args.smtp_source_id, args.require_three_posts, previous)
