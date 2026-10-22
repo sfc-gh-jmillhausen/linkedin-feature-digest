@@ -107,7 +107,8 @@ try {
     const check = result.result.value;
     assert.ok(check.scroll <= check.width, `${name}: horizontal overflow`);
     assert.equal(check.posts.length, expectedPosts);
-    assert.ok(check.posts.every(post => post.includes('team could')));
+    assert.ok(check.posts.every(post => post.trim().length > 0));
+    assert.equal(new Set(check.posts.map(post => post.trim().split(/\s+/).slice(0, 3).join(' '))).size, check.posts.length);
     assert.equal(check.optionsBeforeFeatures, true);
     assert.equal(check.composerCount, 1);
     assert.equal(check.external, 0);
