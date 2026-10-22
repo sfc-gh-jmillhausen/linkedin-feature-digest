@@ -1,0 +1,18 @@
+{
+  "owner_email": "you@your-company.com",
+  "timezone": "America/Los_Angeles",
+  "issue_weekdays": [0, 3],
+  "issue_time": "08:00",
+  "slack": {
+    "team_id": "TYOURTEAMID",
+    "hosts": ["your-workspace.slack.com", "your-workspace.enterprise.slack.com"],
+    "channels": {
+      "launch_feed": "CXXXXXXXXXX",
+      "feature_announcements": "CXXXXXXXXXX",
+      "product_contacts": "CXXXXXXXXXX"
+    }
+  },
+  "compass_hosts": ["your-tenant.seismic.com"],
+  "public_hosts": ["docs.snowflake.com", "www.snowflake.com", "developers.snowflake.com"],
+  "workdir": "~/linkedin-feature-digest-runs"
+}

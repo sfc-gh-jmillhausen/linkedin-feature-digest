@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-22",
+  "post": "An operations team shouldn't have to wait for tonight's export to spot today's order backlog.\n\nFor a business running orders in Snowflake Postgres, data mirroring can keep those order changes flowing into Snowflake for reporting. The team could use that feed to flag orders stuck before dispatch while there's still time to act.\n\nData mirroring is now generally available on AWS and Azure. It handles inserts, updates, deletes, and schema changes without a separate ETL job or third-party connector. The dashboard and alert logic still need to be built, but the data feed is handled.",
+  "post_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-15-postgres-data-mirroring-ga",
+  "coverage": "Email-format example using three releases, not a fresh weekly scan. Business examples and the impact calculation are illustrative. No non-public claims are included.",
+  "features": [
+    {
+      "title": "Data mirroring for Snowflake Postgres",
+      "category": "Data Engineering",
+      "sales_resources": {"checked_on":"2026-10-22","slides":[],"pm":null,"channel":null,"notes":"Schema example only; live Compass and Slack lookup is required on each run."},
+      "classification": "public",
+      "status": "Generally available / AWS and Azure",
+      "date": "2026-10-15",
+      "change": "Keep Snowflake reporting tables in step with changes in a Snowflake Postgres instance, including schema changes.",
+      "buyer": "Data engineering lead supporting order operations.",
+      "pain": "The team owns an extra export/load job or connector, including schema-change handling and broken-feed investigation. Operations waits for that feed before investigating an order backlog.",
+      "business_example": "An order-operations team could flag orders stuck before dispatch during the working day instead of discovering them in tomorrow's report.",
+      "before": "A scheduled export and load job, or a separately operated change-data-capture connector. Those are alternatives, not a claim that continuous replication was previously impossible.",
+      "enables": "A managed feed for operational reporting. The business still builds its dashboard and exception rules; data transfer is the part this feature changes.",
+      "talk_track": "If your team is maintaining a separate reporting feed from Snowflake Postgres, start with that maintenance burden. Mirroring can simplify the feed; it does not deliver the dashboard or eliminate every operational task.",
+      "impact": {"kind":"illustrative","baseline":3,"proposed":1,"volume":4,"unit":"engineering hours","period":"month","assumptions":"Assume the existing feed takes 3 hours of upkeep per week, the replacement takes 1 hour, and a planning month has 4 weeks. That is 8 hours of capacity returned, only if the assumed upkeep reduction occurs.","exclusions":"Not measured savings. Excludes migration effort and Snowflake compute/storage charges; do not translate hours into cash savings without a staffing assumption."},
+      "sources": [{"label":"Release note","url":"https://docs.snowflake.com/en/release-notes/2026/other/2026-10-15-postgres-data-mirroring-ga","method":"page_text","excerpt":"Data mirroring continuously replicates tables from a Snowflake Postgres instance into a Snowflake database with minimal lag. Currently supported on AWS and Azure."}]
+    },
+    {
+      "title": "Schema variables",
+      "category": "Data Engineering",
+      "sales_resources": {"checked_on":"2026-10-22","slides":[],"pm":null,"channel":null,"notes":"Schema example only; live Compass and Slack lookup is required on each run."},
+      "classification": "public",
+      "status": "Generally available",
+      "date": "2026-10-19",
+      "change": "Store a typed shared value in a schema, with separate read and write permissions. It persists beyond one session.",
+      "buyer": "Finance analytics owner with copied planning assumptions.",
+      "pain": "A single assumption update triggers edits across query copies and rework when reports use different values.",
+      "business_example": "A finance team could keep an approved planning exchange-rate assumption in one place for scenario reports that reference it.",
+      "before": "A single-row configuration table or a function returning the shared value. Copies hardcoded into individual reports are another possible setup, not a measured customer baseline.",
+      "enables": "A shared setting that participating reports can reference. It does not automatically rewrite existing reports or replace a dated exchange-rate history table.",
+      "talk_track": "How many query copies need editing when a planning assumption changes? Sell one shared setting and less reconciliation, not a large cost reduction for a team already using centralized configuration.",
+      "impact": {"kind":"illustrative","baseline":2,"proposed":0.5,"volume":6,"unit":"analyst hours","period":"quarter","assumptions":"Suppose 12 queries each take 10 minutes to update and check, six times a quarter. A hypothetical shared-update workflow takes 30 minutes per change.","exclusions":"Excludes initial query conversion and validation work that remains. No guaranteed savings; a team already using centralized configuration may see little incremental benefit."},
+      "sources": [{"label":"Release note","url":"https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga","method":"page_text","excerpt":"Schema variables are named, typed, persistent scalar values scoped to a schema. Shared configuration without single-row tables or UDFs."}]
+    },
+    {
+      "title": "Declarative Feature Store",
+      "category": "Data Science & ML",
+      "sales_resources": {"checked_on":"2026-10-22","slides":[],"pm":null,"channel":null,"notes":"Schema example only; live Compass and Slack lookup is required on each run."},
+      "classification": "public",
+      "status": "Generally available",
+      "date": "2026-10-21",
+      "change": "Define feature store resources in version-controlled YAML or Python and preview changes before applying them.",
+      "buyer": "ML platform lead managing repeat feature-definition deployments.",
+      "pain": "Manual registration steps and environment differences make a feature change harder to review, reproduce, and troubleshoot.",
+      "business_example": "A fraud-model team could review a change to its customer-spending signals before deploying the feature definitions used by its scoring workflow.",
+      "before": "Imperatively registered feature store resources. The documented sync command can pull those resources into declarative specifications.",
+      "enables": "A reviewable change file and deployment plan. The model still needs validation; this does not by itself improve fraud detection accuracy.",
+      "talk_track": "Is deploying a feature definition a repeatable change or a set of steps someone remembers? Sell a reviewable specification and change plan. Model validation still needs to happen, and a team with mature deployment automation may gain less.",
+      "impact": {"kind":"illustrative","baseline":2,"volume":6,"unit":"engineering hours","period":"month","assumptions":"Suppose six feature-definition releases each require two hours of manual registration and configuration reconciliation.","exclusions":"Twelve hours sizes the existing burden, not guaranteed savings. Excludes migration to declarative specifications and model validation; not all deployment work disappears."},
+      "sources": [{"label":"Release note","url":"https://docs.snowflake.com/en/release-notes/2026/other/2026-10-21-declarative-feature-store-ga","method":"page_text","excerpt":"Define your feature store resources as version-controlled YAML or Python specs, then preview and deploy them with the snow feature CLI using a plan-and-apply workflow."}]
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "owner_email": "digest-owner@example.com",
+  "timezone": "America/Los_Angeles",
+  "issue_weekdays": [0, 3],
+  "issue_time": "08:00",
+  "slack": {
+    "team_id": "TEXAMPLE1",
+    "hosts": ["example.slack.com", "example.enterprise.slack.com"]
+  },
+  "compass_hosts": ["example.seismic.com"],
+  "public_hosts": ["docs.snowflake.com", "www.snowflake.com", "developers.snowflake.com"]
+}

@@ -1,0 +1,297 @@
+{
+  "date": "2026-10-22",
+  "coverage": "Synthetic test fixture. Public release-note URLs are real; every deck, Slack link and person below is invented.",
+  "features": [
+    {
+      "title": "Sensitive Data Entitlement and Access reports",
+      "category": "Security & Governance",
+      "sales_resources": {
+        "checked_on": "2026-10-22",
+        "slides": [
+          {
+            "title": "Example deck 1.1",
+            "url": "https://example.seismic.com/Link/Content/DCexampleGovernance",
+            "pages": "Slides 6 and 30 (adjacent context)",
+            "sharing": "internal",
+            "sharing_basis": "Synthetic sharing property recorded for tests.",
+            "relevance": "Synthetic relevance note for layout and validation tests.",
+            "excerpt": "Synthetic excerpt from example deck 1.1 used only by tests."
+          }
+        ],
+        "pm": {
+          "name": "Avery Example",
+          "user_id": "UEXAMPLE01",
+          "url": "https://example.slack.com/messages/UEXAMPLE01",
+          "role": "Synthetic product contact Avery Example for tests.",
+          "evidence_url": "https://example.enterprise.slack.com/archives/CEXAMPLE01/p1781636823627669",
+          "excerpt": "please add Avery Example as the product contact for this area now."
+        },
+        "channel": {
+          "name": "#example-governance",
+          "url": "https://example.slack.com/archives/CEXAMPLE01",
+          "excerpt": "Synthetic channel purpose confirming fit, used only for tests."
+        },
+        "notes": "Synthetic fixture resources; a real run records its own lookups and gaps here."
+      },
+      "classification": "public",
+      "status": "Generally available / Enterprise Edition or higher",
+      "date": "2026-10-20",
+      "change": "Trust Center reports show who has privileges on sensitive tables and who accessed those tables during a configurable lookback period.",
+      "buyer": "Security lead or governance owner preparing access evidence for an audit.",
+      "pain": "An engineer pulls grants, follows role inheritance, joins sensitive-table classifications, and reconciles access history before the security team can even start its review. That is recurring evidence-assembly work, not risk reduction yet.",
+      "business_example": "A security team could compare permitted access with observed access before an audit and prioritize permissions worth reviewing.",
+      "before": "One alternative is a custom report that combines grants, role relationships, table classifications, and access history.",
+      "enables": "A managed reporting step instead of maintaining that custom evidence report. Classification, report setup, and permission decisions remain your team's work. Inactivity alone does not prove access is unnecessary.",
+      "talk_track": "How much of audit prep is spent assembling the access picture instead of reviewing it? If that report is rebuilt every quarter, this is a way to spend less engineering effort on evidence collection and more time deciding which access to change. It is not automatic remediation.",
+      "impact": {
+        "kind": "illustrative",
+        "baseline": 6,
+        "proposed": 2,
+        "volume": 4,
+        "unit": "engineering hours",
+        "period": "year",
+        "assumptions": "Four quarterly audits; six hours to assemble evidence today, hypothetically two using the reports, for the same scope.",
+        "exclusions": "Excludes initial setup, audit review, remediation, and platform charges. No compliance or breach-reduction claim."
+      },
+      "sources": [
+        {
+          "label": "Release note",
+          "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga",
+          "method": "page_text",
+          "excerpt": "lists users who accessed tables containing sensitive data during a configurable lookback period."
+        }
+      ]
+    },
+    {
+      "title": "Schema variables",
+      "category": "Data Engineering",
+      "sales_resources": {
+        "checked_on": "2026-10-22",
+        "slides": [],
+        "pm": null,
+        "channel": null,
+        "notes": "Synthetic fixture resources; a real run records its own lookups and gaps here."
+      },
+      "classification": "public",
+      "status": "Generally available",
+      "date": "2026-10-19",
+      "change": "Store named, typed scalar values in a schema. They persist beyond a session and have separate read and write permissions.",
+      "buyer": "Analytics engineering lead or finance reporting owner with duplicated planning assumptions.",
+      "pain": "A changed planning assumption becomes a scavenger hunt across copied SQL. Someone updates each copy, checks for missed values, and explains why two reports disagree. The pain is repeated edits and reconciliation, not the cost of storing one value.",
+      "business_example": "A finance team could keep one approved planning exchange-rate assumption for scenario queries that reference it.",
+      "before": "A single-row configuration table or a function returning the shared value is another approach.",
+      "enables": "One governed scalar setting for participating queries, without a single-row table or helper function. Existing reports need adaptation; same-named session variables can shadow it. This is not a historical exchange-rate table. If configuration is already centralized, the incremental benefit may be small.",
+      "talk_track": "When finance changes one assumption, how many places need editing? For a team with copied values, sell fewer edits and fewer mismatched reports. For a team already using a clean configuration table, this is a simpler primitive, not a major cost-takeout project.",
+      "impact": {
+        "kind": "illustrative",
+        "baseline": 2,
+        "proposed": 0.5,
+        "volume": 6,
+        "unit": "analyst hours",
+        "period": "quarter",
+        "assumptions": "12 query copies x 10 minutes to edit/check, twice monthly for three months. Hypothetical replacement: one shared update and validation taking 30 minutes.",
+        "exclusions": "Excludes initial query conversion and additional regression testing. Little incremental benefit if configuration is already centralized."
+      },
+      "sources": [
+        {
+          "label": "Release note",
+          "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga",
+          "method": "page_text",
+          "excerpt": "Schema variables are named, typed, persistent scalar values scoped to a schema."
+        }
+      ]
+    },
+    {
+      "title": "Online Feature Store",
+      "category": "Data Science & ML",
+      "sales_resources": {
+        "checked_on": "2026-10-22",
+        "slides": [
+          {
+            "title": "Example deck 3.1",
+            "url": "https://example.seismic.com/Link/Content/DCexampleMl",
+            "pages": "Slides 16-17",
+            "sharing": "internal",
+            "sharing_basis": "Synthetic sharing property recorded for tests.",
+            "relevance": "Synthetic relevance note for layout and validation tests.",
+            "excerpt": "Synthetic excerpt from example deck 3.1 used only by tests."
+          },
+          {
+            "title": "Example deck 3.2",
+            "url": "https://docs.google.com/presentation/d/example-ml-deck/edit",
+            "pages": "Slide numbers not verified",
+            "sharing": "unverified",
+            "sharing_basis": "Synthetic sharing property recorded for tests.",
+            "relevance": "Synthetic relevance note for layout and validation tests.",
+            "excerpt": "Sharing example feature-store enablement slides for internal review.",
+            "discovered_via": "slack",
+            "shared_on": "2026-10-21",
+            "evidence_url": "https://example.enterprise.slack.com/archives/CEXAMPLE02/p1792647907672709",
+            "evidence_excerpt": "Sharing example feature-store enablement slides for internal review.",
+            "content_status": "not_accessible"
+          }
+        ],
+        "pm": {
+          "name": "Morgan Example",
+          "user_id": "UEXAMPLE02",
+          "url": "https://example.slack.com/messages/UEXAMPLE02",
+          "role": "Synthetic product contact Morgan Example for tests.",
+          "evidence_url": "https://example.enterprise.slack.com/archives/CEXAMPLE02/p1781636823627669",
+          "excerpt": "please add Morgan Example as the product contact for this area now."
+        },
+        "channel": {
+          "name": "#example-feature-store",
+          "url": "https://example.slack.com/archives/CEXAMPLE03",
+          "excerpt": "Synthetic channel purpose confirming fit, used only for tests."
+        },
+        "notes": "Synthetic fixture resources; a real run records its own lookups and gaps here."
+      },
+      "classification": "public",
+      "status": "Generally available / AWS and Azure commercial regions; not Google Cloud",
+      "date": "2026-10-20",
+      "change": "Serve feature values to real-time models with low-latency retrieval, selectable service sizing, and monitoring in Snowsight.",
+      "buyer": "ML platform lead whose team operates a separate feature-serving layer for real-time scoring.",
+      "pain": "Keeping an online feature-serving API running means deployment, capacity planning, monitoring, and incident ownership alongside the model. The business wants a transaction scored; the team spends part of its week maintaining the retrieval service.",
+      "business_example": "A fraud team could retrieve customer-spending signals while scoring a transaction rather than only consult a nightly feature snapshot.",
+      "before": "A separately operated feature-serving API or batch-refreshed features are possible alternatives with different trade-offs.",
+      "enables": "A managed online retrieval service with sizing and monitoring, potentially replacing a custom serving layer where requirements fit. The feature pipeline, model, integration, and service ownership still need attention. Serving compute and storage still cost money; fewer components do not guarantee a lower bill or fresher features.",
+      "talk_track": "Are your ML engineers improving the model or maintaining the service that retrieves its inputs? If you own a custom feature-serving layer, this is a consolidation conversation. Establish fit before retiring it; a batch-only workload may not need an online service at all.",
+      "impact": {
+        "kind": "illustrative",
+        "baseline": 8,
+        "volume": 4,
+        "unit": "engineering hours",
+        "period": "planning month",
+        "assumptions": "Eight hours weekly for serving-layer releases, scaling, monitoring, and incidents; a four-week planning month.",
+        "exclusions": "Migration, pipeline/model operations, and service charges remain. No guaranteed effort, bill, fraud-loss, or accuracy improvement."
+      },
+      "sources": [
+        {
+          "label": "Release note",
+          "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga",
+          "method": "page_text",
+          "excerpt": "The Online Feature Store serves the latest feature values with low-latency online retrieval for real-time ML applications such as fraud detection, recommendations, and personalization."
+        }
+      ]
+    },
+    {
+      "title": "Data mirroring for Snowflake Postgres",
+      "category": "Data Engineering",
+      "classification": "public",
+      "status": "Generally available / AWS and Azure",
+      "date": "2026-10-15",
+      "change": "Keep Snowflake reporting tables in step with changes in a Snowflake Postgres instance, including schema changes.",
+      "buyer": "Data engineering lead supporting order operations.",
+      "pain": "The team owns an extra export/load job or connector, including schema-change handling and broken-feed investigation. Operations waits for that feed before investigating an order backlog.",
+      "business_example": "An order-operations team could flag orders stuck before dispatch during the working day instead of discovering them in tomorrow's report.",
+      "before": "A scheduled export/load job or separately operated change-data-capture connector. Continuous replication was already possible; the opportunity is less feed ownership.",
+      "enables": "A managed feed from Snowflake Postgres for operational reporting. The team still builds dashboards and exception rules. This is not a claim that mirroring directly ingests any external Postgres database.",
+      "talk_track": "Are you maintaining a separate reporting feed from Snowflake Postgres? Start with that upkeep and what could actually be retired. If your source is an external Postgres system, establish the ingestion path first rather than promising a direct replacement.",
+      "impact": {
+        "kind": "illustrative",
+        "baseline": 3,
+        "proposed": 1,
+        "volume": 4,
+        "unit": "engineering hours",
+        "period": "planning month",
+        "assumptions": "Three hours of feed upkeep per week today, hypothetically one with mirroring, across four weeks.",
+        "exclusions": "Excludes initial migration, external-source ingestion, and platform/transfer charges. Existing operations and validation remain."
+      },
+      "sources": [
+        {
+          "label": "Release note",
+          "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-15-postgres-data-mirroring-ga",
+          "method": "page_text",
+          "excerpt": "Data mirroring continuously replicates tables from a Snowflake Postgres instance into a Snowflake database with minimal lag."
+        }
+      ],
+      "sales_resources": {
+        "checked_on": "2026-10-22",
+        "slides": [
+          {
+            "title": "Example deck 4.1",
+            "url": "https://example.seismic.com/Link/Content/DCexampleRealtime",
+            "pages": "Slides 13-15",
+            "sharing": "external",
+            "sharing_basis": "Synthetic sharing property recorded for tests.",
+            "relevance": "Synthetic relevance note for layout and validation tests.",
+            "excerpt": "Synthetic excerpt from example deck 4.1 used only by tests."
+          }
+        ],
+        "pm": null,
+        "channel": {
+          "name": "#example-postgres",
+          "url": "https://example.slack.com/archives/CEXAMPLE04",
+          "excerpt": "Synthetic channel purpose confirming fit, used only for tests."
+        },
+        "notes": "Synthetic fixture resources; a real run records its own lookups and gaps here."
+      }
+    },
+    {
+      "title": "Declarative Feature Store",
+      "category": "Data Science & ML",
+      "classification": "public",
+      "status": "Generally available",
+      "date": "2026-10-21",
+      "change": "Define feature store resources in version-controlled YAML or Python and preview changes before applying them.",
+      "buyer": "ML platform lead managing repeat feature-definition deployments.",
+      "pain": "Manual registration steps and environment differences make a feature change harder to review, reproduce, and troubleshoot.",
+      "business_example": "A fraud-model team could review a change to its customer-spending signals before deploying the feature definitions used by its scoring workflow.",
+      "before": "Imperatively registered feature store resources. The documented sync command can pull those resources into declarative specifications.",
+      "enables": "A reviewable change file and deployment plan. Model validation and deployment oversight remain; this does not by itself improve fraud detection accuracy.",
+      "talk_track": "Is deploying a feature definition a repeatable change or a set of steps someone remembers? Sell a reviewable specification and change plan. A team with mature deployment automation may gain less.",
+      "impact": {
+        "kind": "illustrative",
+        "baseline": 2,
+        "volume": 6,
+        "unit": "engineering hours",
+        "period": "month",
+        "assumptions": "Six feature-definition releases each require two hours of manual registration and configuration reconciliation.",
+        "exclusions": "Sizes existing burden only. Excludes moving to declarative specifications, model validation, and deployment work that remains."
+      },
+      "sources": [
+        {
+          "label": "Release note",
+          "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-21-declarative-feature-store-ga",
+          "method": "page_text",
+          "excerpt": "Define your feature store resources (entities, data sources, feature views, and feature groups) as version-controlled YAML or Python specs, then preview and deploy them with the snow feature CLI using a plan-and-apply workflow."
+        }
+      ],
+      "sales_resources": {
+        "checked_on": "2026-10-22",
+        "slides": [],
+        "pm": {
+          "name": "Morgan Example",
+          "user_id": "UEXAMPLE02",
+          "url": "https://example.slack.com/messages/UEXAMPLE02",
+          "role": "Synthetic product contact Morgan Example for tests.",
+          "evidence_url": "https://example.enterprise.slack.com/archives/CEXAMPLE02/p1781636823627669",
+          "excerpt": "please add Morgan Example as the product contact for this area now."
+        },
+        "channel": {
+          "name": "#example-feature-store",
+          "url": "https://example.slack.com/archives/CEXAMPLE05",
+          "excerpt": "Synthetic channel purpose confirming fit, used only for tests."
+        },
+        "notes": "Synthetic fixture resources; a real run records its own lookups and gaps here."
+      }
+    }
+  ],
+  "posts": [
+    {
+      "angle": "Audit prep",
+      "text": "Before an audit, a security team needs two lists: who can access sensitive data, and who actually did.\n\nSnowflake's Trust Center now has generally available reports for both. One lists users, roles, and privileges on tables containing sensitive data. The other lists users who accessed those tables during a configurable lookback period.\n\nFor example, a security team could compare the reports to spot access worth reviewing before the audit, rather than assemble that view by hand. The team still has to classify the data and decide what to change. Requires Enterprise Edition or higher.",
+      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga"
+    },
+    {
+      "angle": "Shared planning assumptions",
+      "text": "Changing a planning assumption shouldn't mean hunting through copied queries.\n\nSnowflake schema variables hold a named, typed value beyond a single session, with separate read and write permissions.\n\nFor example, a finance team could point its scenario queries at one approved exchange-rate assumption instead of editing every copy. The queries still need to be adapted, and this isn't a historical exchange-rate table. If you've already centralized those values in a configuration table, the benefit is smaller.",
+      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga"
+    },
+    {
+      "angle": "Feature-serving upkeep",
+      "text": "A real-time model needs a way to retrieve its inputs. That service can become another thing for the team to maintain.\n\nSnowflake's Online Feature Store provides low-latency retrieval of feature values for real-time applications. For example, a fraud team could use it to retrieve customer-spending signals while scoring a transaction.\n\nThe feature pipeline and model still need work, and serving isn't free. It gives teams a managed option to consider before building another serving layer. Available in AWS and Azure commercial regions, not Google Cloud.",
+      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga"
+    }
+  ]
+}
