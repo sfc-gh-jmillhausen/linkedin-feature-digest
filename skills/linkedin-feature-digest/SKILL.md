@@ -1,6 +1,6 @@
 ---
 name: linkedin-feature-digest
-description: "Build and self-email a twice-weekly Snowflake Weekly Feature Digest: three copy-ready LinkedIn post options (each in a different rotating post shape, such as a useful command, a before/now, a roundup, or a short take, with the best public reading link, preferring a useful blog or guide over a bare release note) plus up to five sales feature briefs (buyer, pain, value, alternative, talk track, honest illustrative math) with decks from Compass and public Slack, product contacts, and feature channels. Evidence-gated against official public pages; sent only to the owner via safe-email-send; never posts to LinkedIn. Use whenever the user asks for a feature digest, weekly/Monday/Thursday feature brief, what shipped in Snowflake for sales, LinkedIn post ideas about new Snowflake features, release-note posts, or to set up, run, test, or schedule this digest, even if they don't name the skill."
+description: "Build and self-email a twice-weekly Snowflake Weekly Feature Digest: three copy-ready LinkedIn post options (each modeled on the structure of a recent high-engagement Snowflake post pulled through HarvestAPI, in a different rotating shape, two ready-to-paste opinions plus one with a line for the user to fill in, an image idea, and the best public reading link, preferring a useful blog or guide over a bare release note) plus up to five sales feature briefs (buyer, pain, value, alternative, talk track, honest illustrative math) with decks from Compass and public Slack, product contacts, and feature channels. Evidence-gated against official public pages; sent only to the owner via safe-email-send; never posts to LinkedIn. Use whenever the user asks for a feature digest, weekly/Monday/Thursday feature brief, what shipped in Snowflake for sales, LinkedIn post ideas about new Snowflake features, release-note posts, or to set up, run, test, or schedule this digest, even if they don't name the skill."
 ---
 
 # LinkedIn Feature Digest
@@ -14,9 +14,9 @@ read-only; the only side effect is one self-addressed email.
 - "Run my feature digest", "send this week's digest", "send an example/test".
 - "Set up the LinkedIn feature digest" or "schedule it Monday and Thursday".
 - Questions about the digest format, fixtures, or a failed run.
-- "The posts all sound the same": the shape menu in `references/workflow.md`
-  section 3 controls this; saving a few of the user's own posts in
-  `<WORKDIR>/voice-samples.md` tunes the voice.
+- "The posts all sound the same" or "these posts are bad": section 3 of
+  `references/workflow.md` controls this (reference posts, shapes, voices);
+  saving a few of the user's own posts in `<WORKDIR>/voice-samples.md` tunes the voice.
 
 Not for publishing to LinkedIn (it never posts), customer newsletters, or mass email.
 
@@ -33,6 +33,10 @@ Not for publishing to LinkedIn (it never posts), customer newsletters, or mass e
 
 - Python 3.11+ with `certifi` (for TLS evidence capture), `uv`, and `node` 18+
   (optional, for visual QA).
+- Optional: a [HarvestAPI](https://docs.harvestapi.io) key in `HARVEST_API_KEY`
+  or `~/.config/harvestapi/key` (mode 600), used read-only to pull a few recent
+  high-engagement LinkedIn posts as structural models each run (a few cents).
+  Without it, runs reuse the last saved `references.json`.
 - The safe-email-send CLI 0.1.x on PATH. This repo vendors it:
   `uv tool install <REPO>/vendor/safe-email-send`, then follow its
   `docs/setup.md`. Register `<REPO>/skills/safe-email-send` as a local skill too.
@@ -76,14 +80,19 @@ consent choice. Offer a test send.
    - `scripts/issue_schedule.py [--issue-file <RUN_DIR>/issue.json]`: latest due
      slot and stable `source_id`; persists/reuses the manifest so retries never
      double-send.
+   - `scripts/reference_posts.py --output <RUN_DIR>`: pulls recent
+     high-engagement Snowflake product posts via HarvestAPI into
+     `references.json` (structural models only; never copied).
    - `scripts/source_evidence.py <candidate.json> --output <RUN_DIR>/evidence`:
      fetches each public URL on the allowlisted hosts with TLS, stores bytes,
      text, and sha256.
    - `scripts/render_brief.py <candidate.json> --output <RUN_DIR> --evidence-dir
      <RUN_DIR>/evidence --smtp-source-id <source_id> --require-three-posts
-     [--previous-shapes <last issue's post_shapes>]`:
+     [--previous-shapes <last issue's post_shapes>] --references <RUN_DIR>/references.json`:
      validates schema, evidence quotes, resource links, and copy rules (each post
-     needs a distinct shape; the last issue's exact shape mix is rejected); writes
+     needs a distinct shape and a different model post from the references, no
+     copied wording or code, two opinion options plus one fill-in, an image idea
+     from a captured public page; the last issue's exact shape mix is rejected); writes
      `email-body.md`, `email-payload.json`, `smtp-message.json`, `latest-post.md`.
    - `scripts/check_sender_html.py <RUN_DIR>/smtp-message.json` (run with the
      sender's environment): confirms the HTML passes the sender allowlist.

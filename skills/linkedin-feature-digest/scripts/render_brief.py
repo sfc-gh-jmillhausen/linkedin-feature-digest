@@ -34,15 +34,23 @@ FEATURE_FIELDS = (
     ("How to sell it", "talk_track"),
 )
 POST_SHAPES = {
-    "problem_fix": "Problem, then the fix",
-    "command": "One useful command",
+    # Structures seen in high-engagement Snowflake product posts.
+    "result_first": "Result first",
+    "old_problem_now": "Old problem, now",
+    "tried_it": "I tried it",
+    "question_then_facts": "Question, then facts",
     "roundup": "Short roundup",
-    "no_longer": "You don't need X anymore",
-    "before_after": "Before / now",
     "short_take": "Short take",
     "who_for": "Who it's for",
 }
 SHORT_TAKE_MAX_WORDS = 60
+POST_WORDS = (40, 220)
+# Two ready-to-paste opinions and one draft with a line only the user can write.
+VOICES = {"opinion": 2, "fill_in": 1}
+FILL_IN = re.compile(r"\[[^\[\]]{8,160}\]")
+CODE = re.compile(r"`|;\s*$|=>|\b(?:SELECT|ALTER|CREATE|CALL|INSERT|UPDATE|GRANT|DROP)\s+[A-Z_(*]", re.M)
+LINKEDIN_POST = "https://www.linkedin.com/posts/"
+COPY_WORDS = 7
 SALES_GROUPS = (
     ("The pain", (("Who cares", "buyer"), ("The pain", "pain"))),
     ("The value", (
@@ -61,7 +69,66 @@ def post_options(data):
 def option_title(number, post):
     """The shape label shows the issue's variety at a glance."""
     title = f"Option {number}: {post['angle']}"
-    return f"{title} ({POST_SHAPES[post['shape']]})" if post.get("shape") else title
+    if not post.get("shape"):
+        return title
+    label = POST_SHAPES[post["shape"]]
+    return f"{title} ({label}, needs your line)" if post.get("voice") == "fill_in" else f"{title} ({label})"
+
+
+def option_notes(post):
+    """(label, text, url) rows shown under an option; never part of the copy."""
+    rows = []
+    if post.get("image"):
+        rows.append(("Image idea", post["image"]["suggestion"], post["image"]["source_url"]))
+    if post.get("model"):
+        model = post["model"]
+        rows.append(("Modeled on", f"{model['author']}'s post ({model['pattern']})", model["url"]))
+    return rows
+
+
+def phrases(value):
+    words = re.findall(r"[a-z0-9']+", value.casefold())
+    return {tuple(words[index:index + COPY_WORDS]) for index in range(len(words) - COPY_WORDS + 1)}
+
+
+def load_references(path):
+    posts = json.loads(Path(path).read_text())["posts"]
+    return {post["url"]: post for post in posts}
+
+
+def validate_modeling(posts, public, references=None):
+    """Voice mix, fill-in slot, no code, a real reference post, and an image idea."""
+    if not any(post.get("voice") or post.get("model") or post.get("image") for post in posts):
+        return
+    voices = [post.get("voice") for post in posts]
+    if sorted(voices, key=str) != sorted([voice for voice, count in VOICES.items() for _ in range(count)]):
+        raise ValueError("Use two opinion options and one fill_in option")
+    models = []
+    for post in posts:
+        if post["voice"] == "fill_in" and len(FILL_IN.findall(post["text"])) != 1:
+            raise ValueError("A fill_in option needs exactly one [bracketed line] for the user")
+        if post["voice"] == "opinion" and ("[" in post["text"] or "]" in post["text"]):
+            raise ValueError("Opinion options must be ready to paste, without brackets")
+        if post.get("shape") == "tried_it" and post["voice"] != "fill_in":
+            raise ValueError("I tried it needs the user's own line; use fill_in")
+        model = post.get("model") or {}
+        for key in ("author", "pattern"):
+            text(model.get(key))
+        if not str(model.get("url", "")).startswith(LINKEDIN_POST):
+            raise ValueError("Each option must name the LinkedIn post it is modeled on")
+        if references is not None:
+            if model["url"] not in references:
+                raise ValueError("Model post must come from this run's references")
+            if phrases(post["text"]) & phrases(references[model["url"]]["content"]):
+                raise ValueError("Option copies wording from its model post; borrow the structure only")
+        models.append(model["url"])
+        image = post.get("image") or {}
+        if not 3 <= len(text(image.get("suggestion")).split()) <= 30:
+            raise ValueError("Image idea must be 3-30 words")
+        if image.get("source_url") not in public:
+            raise ValueError("Image idea must come from an included public source")
+    if len(set(models)) != len(models):
+        raise ValueError("Model each option on a different post")
 
 
 def validate_shapes(posts, previous_shapes=None):
@@ -123,6 +190,13 @@ def email_html(data):
         parts.append('<div class="post-copy">')
         parts.extend(paragraph(value, "font-size:15px;color:#123548;") for value in post["text"].split("\n\n"))
         parts += ['</div>', link(post["url"], post["url"])]
+        for label, value, url in option_notes(post):
+            parts.append(
+                '<p class="option-note" style="margin:0 0 6px;font-size:13px;line-height:1.5;color:#5B6B75;"><strong>'
+                + html.escape(label) + ':</strong> ' + html.escape(value) + ' <a href="'
+                + html.escape(url, quote=True) + '" style="color:#0879A5;overflow-wrap:anywhere;">'
+                + html.escape("source" if label == "Image idea" else "view post") + '</a></p>'
+            )
     parts += [
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">'
         '<tr><td style="background-color:#29B5E8;border-radius:4px;">'
@@ -368,7 +442,7 @@ def estimate(impact):
     return label, " ".join(paragraphs)
 
 
-def validate(data, previous_shapes=None):
+def validate(data, previous_shapes=None, references=None):
     date.fromisoformat(data["date"])
     posts = post_options(data)
     if "posts" in data:
@@ -384,8 +458,11 @@ def validate(data, previous_shapes=None):
             raise ValueError("Post option angles must be distinct")
         validate_shapes(posts, previous_shapes)
     for post in posts:
-        if not 35 <= len(text(post["text"]).split()) <= 150:
-            raise ValueError("Post must be 35-150 words, excluding the link")
+        low, high = POST_WORDS
+        if not low <= len(text(post["text"]).split()) <= high:
+            raise ValueError(f"Post must be {low}-{high} words, excluding the link")
+        if CODE.search(post["text"]):
+            raise ValueError("Posts must not include code or SQL")
         source_url(post["url"])
     text(data["coverage"])
     if not 1 <= len(data["features"]) <= MAX_FEATURES:
@@ -400,6 +477,9 @@ def validate(data, previous_shapes=None):
             for item in data["features"]
         ):
             raise ValueError("Post must cover one of the included public features")
+    if "posts" in data:
+        public = {source["url"] for item in data["features"] if item["classification"] == "public" for source in item["sources"]}
+        validate_modeling(posts, public, references)
     for item in data["features"]:
         internal = item["classification"] == "internal"
         if item["classification"] not in {"public", "internal"}:
@@ -424,12 +504,15 @@ def validate(data, previous_shapes=None):
     return data
 
 
-def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_posts=False, previous_shapes=None):
-    validate(data, previous_shapes)
+def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_posts=False, previous_shapes=None, references=None):
+    reference_posts = load_references(references) if references else None
+    validate(data, previous_shapes, reference_posts)
     if require_three_posts and "posts" not in data:
         raise ValueError("Scheduled issues require three post options")
     if require_three_posts and not all(post.get("shape") for post in data["posts"]):
         raise ValueError("Scheduled issues require a shape on every post option")
+    if require_three_posts and (reference_posts is None or not all(post.get("voice") for post in data["posts"])):
+        raise ValueError("Scheduled issues require voices, model posts and image ideas checked against --references")
     if smtp_source_id is not None:
         if evidence_dir is None:
             raise ValueError("SMTP output requires captured evidence")
@@ -450,6 +533,7 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
         if "posts" in data:
             lines.append(f"### {option_title(number, post)}")
         lines.extend([post["text"], post["url"]])
+        lines.extend(f"{label}: {value} {url}" for label, value, url in option_notes(post))
     lines.extend([f"Post to Linkedin: {COMPOSER}", "---", "## This week's sales brief"])
     feature_number = 0
     for section, items in [("Public features", public), ("INTERNAL ONLY - DO NOT POST OR FORWARD EXTERNALLY", internal)]:
@@ -484,7 +568,8 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
     copies = []
     for number, post in enumerate(post_options(data), 1):
         label = f"## {option_title(number, post)}\n\n" if "posts" in data else ""
-        copies.append(label + post["text"] + "\n\n" + post["url"])
+        notes = "".join(f"\n\n{name}: {value} {url}" for name, value, url in option_notes(post))
+        copies.append(label + post["text"] + "\n\n" + post["url"] + notes)
     (output / "latest-post.md").write_text("\n\n".join(copies) + "\n")
     if smtp_source_id is not None:
         subject = "Weekly Feature Digest | " + data["date"]
@@ -506,6 +591,7 @@ if __name__ == "__main__":
     parser.add_argument("--smtp-source-id", help="Build self-only SMTP payload; stable issue ID prevents duplicate sends")
     parser.add_argument("--require-three-posts", action="store_true", help="Require the current three-option issue schema")
     parser.add_argument("--previous-shapes", help="Comma-separated shapes from the last issue in history.json; an identical mix is rejected")
+    parser.add_argument("--references", type=Path, help="references.json from reference_posts.py; model posts must come from it")
     args = parser.parse_args()
     previous = [shape.strip() for shape in args.previous_shapes.split(",") if shape.strip()] if args.previous_shapes else None
-    render(json.loads(args.input.read_text()), args.output, args.evidence_dir, args.smtp_source_id, args.require_three_posts, previous)
+    render(json.loads(args.input.read_text()), args.output, args.evidence_dir, args.smtp_source_id, args.require_three_posts, previous, args.references)

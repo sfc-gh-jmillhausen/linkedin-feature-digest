@@ -64,7 +64,7 @@ try {
     const { frameTree } = await send('Page.getFrameTree');
     assert.equal(frameTree.frame.url, url);
     assert.equal(frameTree.childFrames?.length ?? 0, 0);
-    await send('Runtime.evaluate', { expression: '[...document.querySelectorAll("a")].filter(link => link.href !== "https://www.linkedin.com/sharing/compose").slice(0, ' + expectedPosts + ').at(-1).focus();' });
+    await send('Runtime.evaluate', { expression: '(() => { const links = [...document.querySelectorAll("a")]; links[links.findIndex(link => link.href === "https://www.linkedin.com/sharing/compose") - 1].focus(); })();' });
     await send('Input.dispatchKeyEvent', { type: 'keyDown', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     await send('Input.dispatchKeyEvent', { type: 'keyUp', key: 'Tab', code: 'Tab', windowsVirtualKeyCode: 9 });
     const result = await send('Runtime.evaluate', {
@@ -91,7 +91,7 @@ try {
           external: document.querySelectorAll('script,link[rel="stylesheet"],iframe,img,form').length,
           linkURLs: links.map(link => link.href), focused: document.activeElement === composer,
           composerLabel: composer.textContent,
-          releaseURLsVisible: links.filter(link => link.href.startsWith('https://docs.snowflake.com/en/release-notes/'))
+          releaseURLsVisible: links.filter(link => link.href.startsWith('https://docs.snowflake.com/en/release-notes/') && !link.closest('.option-note'))
             .every(link => link.textContent === link.getAttribute('href')),
           focusOutline: getComputedStyle(composer).outlineStyle,
           targetHeight: composer.getBoundingClientRect().height,

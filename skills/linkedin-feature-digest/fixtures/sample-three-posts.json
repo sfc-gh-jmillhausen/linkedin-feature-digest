@@ -282,19 +282,49 @@
       "angle": "Audit prep",
       "text": "Before an audit, a security team needs two lists: who can access sensitive data, and who actually did.\n\nSnowflake's Trust Center now has generally available reports for both. One lists users, roles, and privileges on tables containing sensitive data. The other lists users who accessed those tables during a configurable lookback period.\n\nFor example, a security team could compare the reports to spot access worth reviewing before the audit, rather than assemble that view by hand. The team still has to classify the data and decide what to change. Requires Enterprise Edition or higher.",
       "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga",
-      "shape": "problem_fix"
+      "shape": "result_first",
+      "voice": "opinion",
+      "model": {
+        "url": "https://www.linkedin.com/posts/example-author-1",
+        "author": "Example Author 1",
+        "pattern": "outcome hook, three short lines, one honest catch"
+      },
+      "image": {
+        "suggestion": "Screenshot of the overview section on the linked page",
+        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga"
+      }
     },
     {
       "angle": "Shared planning assumptions",
       "text": "Changing a planning assumption shouldn't mean hunting through copied queries.\n\nSnowflake schema variables hold a named, typed value beyond a single session, with separate read and write permissions.\n\nFor example, a finance team could point its scenario queries at one approved exchange-rate assumption instead of editing every copy. The queries still need to be adapted, and this isn't a historical exchange-rate table. If you've already centralized those values in a configuration table, the benefit is smaller.",
       "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga",
-      "shape": "no_longer"
+      "shape": "old_problem_now",
+      "voice": "opinion",
+      "model": {
+        "url": "https://www.linkedin.com/posts/example-author-2",
+        "author": "Example Author 2",
+        "pattern": "outcome hook, three short lines, one honest catch"
+      },
+      "image": {
+        "suggestion": "Screenshot of the overview section on the linked page",
+        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga"
+      }
     },
     {
       "angle": "Feature-serving upkeep",
-      "text": "A real-time model needs a way to retrieve its inputs. That service can become another thing for the team to maintain.\n\nSnowflake's Online Feature Store provides low-latency retrieval of feature values for real-time applications. For example, a fraud team could use it to retrieve customer-spending signals while scoring a transaction.\n\nThe feature pipeline and model still need work, and serving isn't free. It gives teams a managed option to consider before building another serving layer. Available in AWS and Azure commercial regions, not Google Cloud.",
+      "text": "A real-time model needs a way to retrieve its inputs. That service can become another thing for the team to maintain.\n\nSnowflake's Online Feature Store provides low-latency retrieval of feature values for real-time applications.\n\n[Your line: what a customer told you about their serving setup]\n\nThe feature pipeline and model still need work, and serving isn't free. It gives teams a managed option to consider before building another serving layer. Available in AWS and Azure commercial regions, not Google Cloud.",
       "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga",
-      "shape": "who_for"
+      "shape": "tried_it",
+      "voice": "fill_in",
+      "model": {
+        "url": "https://www.linkedin.com/posts/example-author-3",
+        "author": "Example Author 3",
+        "pattern": "outcome hook, three short lines, one honest catch"
+      },
+      "image": {
+        "suggestion": "Screenshot of the overview section on the linked page",
+        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga"
+      }
     }
   ]
 }

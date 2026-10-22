@@ -108,7 +108,9 @@ overwrite prior successful outputs while drafting. Schema:
 
 - Top level: `date`, `posts`, `coverage`, `features`. `posts` is exactly three
   objects with `angle` (short label), `shape` (one key from the section 3 menu,
-  different for each option), `text` (copy-ready prose), and `url` (the
+  different for each option), `voice` (`opinion` or `fill_in`), `model` (`url`,
+  `author`, `pattern` of the reference post it borrows its structure from),
+  `image` (`suggestion`, `source_url`), `text` (copy-ready prose), and `url` (the
   selected public reading link). Do not mix legacy `post`/`post_url` fields. Each
   URL must also occur in an included public feature's sourced evidence.
 - Each feature: `title`, `classification` (public/internal), `status`, `date`,
@@ -213,35 +215,69 @@ verified feature or justify filler.
 
 Voice: plain, casual, specific. If the `snowflake-social-writer` skill is
 available, use its Employee Advocacy voice adapted to three LinkedIn choices (no
-X posts, headlines, or summaries). Length follows the shape: 35-150 words, short
-takes 60 or fewer. Ordinary short paragraphs or a short list.
+X posts, headlines, or summaries). 40-220 words; short takes 60 or fewer. The
+best-performing product posts we sampled ran 150-250 words, so do not cut a
+strong post short. Ordinary short paragraphs or a short list.
 
-Vary the shape so issues do not read like a template. Each option uses a
-different shape from this menu (the renderer rejects repeats and unknown keys):
+Model on real posts. Before drafting, pull this run's reference posts:
 
-- `problem_fix`: a recognizable problem, then what the feature changes.
-- `command`: one useful command, setting, or click path from the public docs,
-  what it does, and the one condition that matters. Copy syntax exactly.
-- `roundup`: two or three included public features in a line each and why each
-  is worth a look; link the most useful page among them.
-- `no_longer`: "you don't need X to do Y anymore", naming the honest catch.
-- `before_after`: a plain "Before:" line and "Now:" line, then one sentence.
+```bash
+python3 <SKILL_DIR>/scripts/reference_posts.py --output <RUN_DIR>
+```
+
+It uses a [HarvestAPI](https://docs.harvestapi.io) key (`HARVEST_API_KEY` or
+`~/.config/harvestapi/key`), costs a few cents, and writes `references.json`:
+recent high-engagement Snowflake product posts. If it fails or no key is set,
+copy the newest earlier `<WORKDIR>/runs/*/references.json` into `<RUN_DIR>` and
+say so in coverage; with no earlier file, report that references are missing.
+Read the references, then for each option pick a different reference post whose
+STRUCTURE fits the feature (hook, rhythm, list or no list, where the caveat sits)
+and record it in `model` with a short `pattern` such as "outcome hook, three
+arrow lines, one honest catch". Borrow structure only: the renderer rejects any
+seven-word run copied from the model post. Never borrow its claims, numbers,
+names, or opinions.
+
+Shapes (each option different; the renderer rejects repeats and unknown keys):
+
+- `result_first`: the outcome in line one, two to four short lines of what
+  changed, one honest catch.
+- `old_problem_now`: a tension readers already live with, then what is different now.
+- `tried_it`: what someone tried, what was easy, what is still work. Always
+  `fill_in`, because only the user can say what they tried.
+- `question_then_facts`: a real question, two or three verified facts, a
+  one-line takeaway. Only with public numbers or specifics.
+- `roundup`: two or three included public features in a line each; link the
+  most useful page among them.
 - `short_take`: two or three sentences and the link, nothing more.
 - `who_for`: addressed to the specific role that should care and why.
 
 Rotation: read `post_shapes` on the last history entry and pass it as
-`--previous-shapes`; the renderer rejects the exact same three-shape mix. Use
-`problem_fix` at most once per issue and skip it if the last issue used it.
-Pick shapes that fit the features; do not force a command when the docs have none.
+`--previous-shapes`; the renderer rejects the exact same three-shape mix.
+
+Voices: exactly two `opinion` options and one `fill_in` option.
+
+- `opinion`: ready to paste, written as the user with a clear point of view
+  ("This is the one I'd show a BI lead"). Opinions are fine; invented actions,
+  results, conversations, or customers are not. No brackets.
+- `fill_in`: the same, plus exactly one bracketed line where the user adds
+  something real, e.g. `[Your line: what a customer asked about this]`.
+
+Never put code, SQL, commands, or syntax in a post; the renderer rejects them.
+
+Image idea: in our sample, product posts with an image drew roughly twice the
+engagement. For each option give a 3-30 word `suggestion` and the captured
+public page it relates to as `source_url`. Prefer a diagram on that page;
+otherwise suggest a screenshot the user can take of the product screen the page
+describes, or of a short step list or table on the page. Nothing is attached.
 
 Write like a person sharing something useful, not a launch announcement:
 
+- Lead with the outcome or the tension, not the feature name.
 - Do not open every option the same way or end every option with a hedge.
-- A business example helps in some shapes; it is optional. Never repeat a stock
-  phrase such as "For example, a ... team could" across options.
+- Never repeat a stock phrase such as "For example, a ... team could" across options.
 - Include a limitation only when it changes who can use it or how (edition,
-  cloud/region, preview, a separate bill, a required setting), in a few words.
-  Fuller limits belong in the sales brief, not the post.
+  cloud/region, preview, a separate bill, a required setting), once, in a few
+  words. Fuller limits belong in the sales brief, not the post.
 - Vary rhythm and length across the three options.
 
 If `<WORKDIR>/voice-samples.md` exists (the user's own past posts), match its
@@ -297,7 +333,8 @@ or legal approval.
 ```bash
 python3 <SKILL_DIR>/scripts/render_brief.py <CANDIDATE_JSON> --output <RUN_DIR> \
   --evidence-dir <RUN_DIR>/evidence --smtp-source-id <SOURCE_ID_FROM_ISSUE_JSON> \
-  --require-three-posts --previous-shapes <SHAPES_FROM_LAST_HISTORY_ENTRY_OR_OMIT>
+  --require-three-posts --previous-shapes <SHAPES_FROM_LAST_HISTORY_ENTRY_OR_OMIT> \
+  --references <RUN_DIR>/references.json
 ```
 
 Do not modify or bypass validators. At most two source-backed repairs; otherwise
@@ -330,7 +367,8 @@ After checks pass, copy `email-body.md`, `email-payload.json`, `smtp-message.jso
 `latest-post.md`, and `posting-check.md` to `<WORKDIR>` as latest outputs,
 preserving manually edited versions first. Keep candidate JSON and evidence in
 `<RUN_DIR>`. Append to `<WORKDIR>/history.json` only after successful writes:
-date, three topics/angles/URLs, `post_shapes` (shape keys in option order),
+date, three topics/angles/URLs, `post_shapes` (shape keys in option order), each
+option's voice and model post URL, where references came from,
 feature titles/source URLs, source_id,
 scheduled_at, run folder, delivery prepared.
 

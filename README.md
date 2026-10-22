@@ -3,11 +3,11 @@
 A Cortex Code (CoCo) skill that emails you a twice-weekly Snowflake feature
 digest. Each issue has:
 
-- **Three LinkedIn post options** to pick from. Each is short and plain, uses a
-  different post shape (a useful command, before/now, roundup, short take, and
-  more) that rotates between issues so they don't read like a template, and links
-  the most useful official public page (a blog or guide when it explains more than
-  the release note).
+- **Three LinkedIn post options** to pick from. Each borrows the structure of a
+  recent high-engagement Snowflake post (pulled read-only through HarvestAPI, a
+  few cents a run), uses a different rotating shape, and links the most useful
+  official public page. Two are ready to paste; one leaves a bracketed line for
+  something only you can say. Each comes with an image idea. No code in posts.
 - **Up to five sales feature briefs** covering the buyer, pain, value, fair
   alternative, a talk track, and honest illustrative math, plus relevant decks
   (Compass/Seismic and public Slack), a product contact, and the feature's channel.
