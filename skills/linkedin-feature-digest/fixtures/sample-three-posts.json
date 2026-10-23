@@ -281,7 +281,6 @@
     {
       "angle": "Audit prep",
       "text": "Before an audit, a security team needs two lists: who can access sensitive data, and who actually did.\n\nSnowflake's Trust Center now has generally available reports for both. One lists users, roles, and privileges on tables containing sensitive data. The other lists users who accessed those tables during a configurable lookback period.\n\nFor example, a security team could compare the reports to spot access worth reviewing before the audit, rather than assemble that view by hand. The team still has to classify the data and decide what to change. Requires Enterprise Edition or higher.",
-      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga",
       "shape": "result_first",
       "voice": "opinion",
       "model": {
@@ -289,15 +288,51 @@
         "author": "Example Author 1",
         "pattern": "outcome hook, three short lines, one honest catch"
       },
-      "image": {
-        "suggestion": "Screenshot of the overview section on the linked page",
-        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga"
-      }
+      "graphic": {
+        "title": "Who can see sensitive data, and who did",
+        "subtitle": "Two Trust Center reports, generally available on Enterprise Edition or higher.",
+        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga",
+        "diagram": {
+          "type": "fanout",
+          "input": {
+            "title": "Tables with sensitive data",
+            "note": "Classified before the reports can see them"
+          },
+          "hub": {
+            "title": "Trust Center",
+            "note": "Two generally available reports"
+          },
+          "outputs": [
+            {
+              "title": "Who can access",
+              "note": "Users, roles and privileges",
+              "marker": "A"
+            },
+            {
+              "title": "Who did access",
+              "note": "Users in a lookback period you set",
+              "marker": "B"
+            }
+          ]
+        },
+        "callouts": [
+          {
+            "marker": "A",
+            "title": "Entitlements",
+            "text": "Lists the users, roles and privileges on tables that hold sensitive data."
+          },
+          {
+            "marker": "B",
+            "title": "Access",
+            "text": "Lists the users who read those tables during a configurable lookback period."
+          }
+        ]
+      },
+      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-sensitive-data-entitlement-access-reports-ga"
     },
     {
       "angle": "Shared planning assumptions",
       "text": "Changing a planning assumption shouldn't mean hunting through copied queries.\n\nSnowflake schema variables hold a named, typed value beyond a single session, with separate read and write permissions.\n\nFor example, a finance team could point its scenario queries at one approved exchange-rate assumption instead of editing every copy. The queries still need to be adapted, and this isn't a historical exchange-rate table. If you've already centralized those values in a configuration table, the benefit is smaller.",
-      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga",
       "shape": "old_problem_now",
       "voice": "opinion",
       "model": {
@@ -305,15 +340,103 @@
         "author": "Example Author 2",
         "pattern": "outcome hook, three short lines, one honest catch"
       },
-      "image": {
-        "suggestion": "Screenshot of the overview section on the linked page",
-        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga"
-      }
+      "graphic": {
+        "title": "One approved value instead of edits in every query",
+        "subtitle": "Schema variables are generally available.",
+        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga",
+        "diagram": {
+          "type": "graph",
+          "cols": 3,
+          "nodes": [
+            {
+              "id": "owner",
+              "label": "Finance owner",
+              "col": 0,
+              "row": 1,
+              "note": "Allowed to change it",
+              "marker": "A"
+            },
+            {
+              "id": "var",
+              "label": "Schema variable",
+              "col": 1,
+              "row": 1,
+              "note": "Named, typed, kept",
+              "marker": "C"
+            },
+            {
+              "id": "q1",
+              "label": "Scenario query",
+              "col": 2,
+              "row": 0,
+              "note": "Reads it"
+            },
+            {
+              "id": "q2",
+              "label": "Forecast query",
+              "col": 2,
+              "row": 1,
+              "note": "Reads it"
+            },
+            {
+              "id": "q3",
+              "label": "Report query",
+              "col": 2,
+              "row": 2,
+              "note": "Reads it",
+              "marker": "B"
+            }
+          ],
+          "edges": [
+            [
+              "owner",
+              "var"
+            ],
+            [
+              "var",
+              "q1"
+            ],
+            [
+              "var",
+              "q2"
+            ],
+            [
+              "var",
+              "q3"
+            ]
+          ],
+          "region": {
+            "nodes": [
+              "q1",
+              "q2",
+              "q3"
+            ],
+            "label": "No copies to edit"
+          }
+        },
+        "callouts": [
+          {
+            "marker": "A",
+            "title": "Separate permissions",
+            "text": "Changing a variable and reading it are granted separately."
+          },
+          {
+            "marker": "B",
+            "title": "Queries still change once",
+            "text": "Each query has to be pointed at the variable before it helps."
+          },
+          {
+            "marker": "C",
+            "title": "Kept beyond a session",
+            "text": "A named, typed value scoped to a schema, not a session setting."
+          }
+        ]
+      },
+      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-19-schema-variables-ga"
     },
     {
       "angle": "Feature-serving upkeep",
       "text": "A real-time model needs a way to retrieve its inputs. That service can become another thing for the team to maintain.\n\nSnowflake's Online Feature Store provides low-latency retrieval of feature values for real-time applications.\n\n[Your line: what a customer told you about their serving setup]\n\nThe feature pipeline and model still need work, and serving isn't free. It gives teams a managed option to consider before building another serving layer. Available in AWS and Azure commercial regions, not Google Cloud.",
-      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga",
       "shape": "tried_it",
       "voice": "fill_in",
       "model": {
@@ -321,10 +444,55 @@
         "author": "Example Author 3",
         "pattern": "outcome hook, three short lines, one honest catch"
       },
-      "image": {
-        "suggestion": "Screenshot of the overview section on the linked page",
-        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga"
-      }
+      "graphic": {
+        "title": "Serve features to real-time models",
+        "subtitle": "The Online Feature Store is generally available in AWS and Azure commercial regions.",
+        "source_url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga",
+        "diagram": {
+          "type": "lanes",
+          "lanes": [
+            "Your app",
+            "Online Feature Store"
+          ],
+          "steps": [
+            {
+              "lane": 1,
+              "title": "Keep latest values",
+              "note": "Ready for online lookups"
+            },
+            {
+              "lane": 0,
+              "title": "Request features",
+              "note": "For a live prediction"
+            },
+            {
+              "lane": 1,
+              "title": "Low-latency lookup",
+              "note": "Served to the caller",
+              "marker": "A"
+            },
+            {
+              "lane": 0,
+              "title": "Score the model",
+              "note": "Fraud, recommendations, personalization",
+              "marker": "B"
+            }
+          ]
+        },
+        "callouts": [
+          {
+            "marker": "A",
+            "title": "Managed serving",
+            "text": "Pick a service size and watch it in Snowsight instead of running another serving layer."
+          },
+          {
+            "marker": "B",
+            "title": "Where it runs",
+            "text": "AWS and Azure commercial regions, not Google Cloud."
+          }
+        ]
+      },
+      "url": "https://docs.snowflake.com/en/release-notes/2026/other/2026-10-20-online-feature-store-ga"
     }
   ]
 }

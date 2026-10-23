@@ -18,6 +18,12 @@ assert.ok([1, 3].includes(expectedPosts));
 const output = process.argv[3];
 assert.ok(output, 'Pass an output directory for QA screenshots');
 const cdp = process.env.CHROME_CDP || '127.0.0.1:9222';
+// Email clients resolve cid: from the message's inline parts; a browser cannot, so substitute the same bytes.
+const inline = new Map((message.inline_images || []).map(image => [image.cid, image.png_base64]));
+const bodyHTML = message.html.replace(/src="cid:([a-z0-9-]+)"/g, (match, cid) => {
+  assert.ok(inline.has(cid), `missing inline image ${cid}`);
+  return `src="data:image/png;base64,${inline.get(cid)}"`;
+});
 const url = 'about:blank';
 await mkdir(output, { recursive: true });
 const target = await (await fetch(`http://${cdp}/json/new?${encodeURIComponent(url)}`, { method: 'PUT' })).json();
@@ -55,7 +61,7 @@ try {
       + '<meta name="viewport" content="width=device-width,initial-scale=1">'
       + '<meta name="snowflake-source" content="cortex-agent-authored">'
       + '<title>SMTP email layout check</title></head>'
-      + `<body style="margin:0;background:#FFFFFF;">${message.html}</body></html>`,
+      + `<body style="margin:0;background:#FFFFFF;">${bodyHTML}</body></html>`,
   });
   const reports = [];
   for (const [name, width, height, scheme] of [['desktop', 1200, 900, 'light'], ['mobile', 360, 844, 'light'], ['tablet', 768, 1024, 'light'], ['dark-preference', 390, 844, 'dark']]) {
@@ -70,6 +76,7 @@ try {
     const result = await send('Runtime.evaluate', {
       expression: `(async () => {
         await document.fonts.ready;
+        await Promise.all([...document.images].map(image => image.complete ? null : new Promise(resolve => { image.onload = image.onerror = resolve; })));
         await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
         const links = [...document.querySelectorAll('a')];
         const composer = links.find(link => link.href === 'https://www.linkedin.com/sharing/compose');
@@ -88,7 +95,13 @@ try {
           talkTracks: document.querySelectorAll('.talk-track').length,
           salesGroups: document.querySelectorAll('.sales-group').length,
           removedLabelPresent: document.body.innerText.includes('not a measured result'),
-          external: document.querySelectorAll('script,link[rel="stylesheet"],iframe,img,form').length,
+          external: document.querySelectorAll('script,link[rel="stylesheet"],iframe,form').length
+            + [...document.images].filter(image => !image.src.startsWith('data:image/png;base64,')).length,
+          graphics: [...document.querySelectorAll('.option-image img')].map(image => ({
+            width: image.naturalWidth, height: image.naturalHeight,
+            shown: image.getBoundingClientRect().width,
+            beforeFeatures: Boolean(image.compareDocumentPosition(document.querySelector('.feature')) & Node.DOCUMENT_POSITION_FOLLOWING),
+          })),
           linkURLs: links.map(link => link.href), focused: document.activeElement === composer,
           composerLabel: composer.textContent,
           releaseURLsVisible: links.filter(link => link.href.startsWith('https://docs.snowflake.com/en/release-notes/') && !link.closest('.option-note'))
@@ -112,6 +125,14 @@ try {
     assert.equal(check.optionsBeforeFeatures, true);
     assert.equal(check.composerCount, 1);
     assert.equal(check.external, 0);
+    assert.equal(check.graphics.length, inline.size);
+    for (const graphic of check.graphics) {
+      assert.equal(graphic.width, 1080, `${name}: graphic did not load`);
+      assert.equal(graphic.height, 1350);
+      // Shown at up to 480 px plus a 1 px border on each side.
+      assert.ok(graphic.shown > 0 && graphic.shown <= Math.min(482, check.width), `${name}: graphic size ${graphic.shown}`);
+      assert.ok(graphic.beforeFeatures);
+    }
     assert.equal(check.features, expectedFeatures);
     assert.equal(check.scenarios, expectedFeatures);
     assert.equal(check.resourceSections, expectedFeatures);
@@ -136,7 +157,7 @@ try {
     const detail = await send('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true, clip: { x: 0, y: firstFeature.result.value, width, height: Math.min(1250, metrics.cssContentSize.height - firstFeature.result.value), scale: 1 } });
     await writeFile(`${output}/${name}-feature.png`, Buffer.from(detail.data, 'base64'));
     reports.push({name, ...check});
-    console.log(`${name}: no overflow; ${expectedFeatures} sales/resource sections; composer focus and touch size pass; no external resources`);
+    console.log(`${name}: no overflow; ${expectedFeatures} sales/resource sections; ${check.graphics.length} inline graphics loaded; composer focus and touch size pass; no external resources`);
   }
   await writeFile(`${output}/layout-check.json`, JSON.stringify({input, scope: 'Unsigned SMTP body; not an email-client or signature rendering test', reports}, null, 2));
 } finally {

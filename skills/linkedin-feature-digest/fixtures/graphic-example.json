@@ -1,0 +1,56 @@
+{
+  "title": "Freeze writes before you fail over",
+  "subtitle": "One setting replaces disabling users, revoking privileges and suspending tasks and pipes.",
+  "source_url": "https://docs.snowflake.com/en/user-guide/account-replication-quiesce-primary",
+  "diagram": {
+    "type": "lanes",
+    "lanes": [
+      "Source (primary)",
+      "Target"
+    ],
+    "steps": [
+      {
+        "lane": 0,
+        "row": 1,
+        "title": "Set read-only",
+        "code": "SET READ_ONLY = TRUE",
+        "note": "New DDL and DML fail. Tasks, pipes and alerts pause.",
+        "marker": "A"
+      },
+      {
+        "lane": 0,
+        "row": 2,
+        "title": "Cancel in-flight queries",
+        "note": "Not cancelled for you"
+      },
+      {
+        "lane": 1,
+        "row": 3,
+        "title": "Final refresh",
+        "code": "ALTER FAILOVER GROUP <name> REFRESH"
+      },
+      {
+        "lane": 1,
+        "row": 4,
+        "title": "Promote the target",
+        "note": "Source becomes a read-only secondary"
+      },
+      {
+        "lane": 0,
+        "row": 3,
+        "from": 1,
+        "alt": true,
+        "title": "Drill only? Undo it",
+        "code": "UNSET READ_ONLY",
+        "note": "Tasks, pipes and alerts resume"
+      }
+    ]
+  },
+  "callouts": [
+    {
+      "marker": "A",
+      "title": "Visible from both accounts",
+      "text": "SHOW FAILOVER GROUPS lets the target confirm writes have stopped on the source."
+    }
+  ]
+}

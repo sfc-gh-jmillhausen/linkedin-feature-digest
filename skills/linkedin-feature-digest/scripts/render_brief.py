@@ -1,6 +1,7 @@
 """Validate up to five sourced features and prepare an email-only brief. No network."""
 
 import argparse
+import base64
 import html
 import json
 import math
@@ -9,8 +10,9 @@ from datetime import date
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from source_evidence import verify_evidence
+from source_evidence import source_key, verify_evidence
 import digest_config
+import graphics
 
 ROOT = Path(__file__).resolve().parent
 COMPOSER = "https://www.linkedin.com/sharing/compose"
@@ -51,6 +53,9 @@ FILL_IN = re.compile(r"\[[^\[\]]{8,160}\]")
 CODE = re.compile(r"`|;\s*$|=>|\b(?:SELECT|ALTER|CREATE|CALL|INSERT|UPDATE|GRANT|DROP)\s+[A-Z_(*]", re.M)
 LINKEDIN_POST = "https://www.linkedin.com/posts/"
 COPY_WORDS = 7
+# Every scheduled issue carries at least one AI feature; the prompt aims for two.
+AI_CATEGORY = "AI"
+MIN_AI_FEATURES = 1
 SALES_GROUPS = (
     ("The pain", (("Who cares", "buyer"), ("The pain", "pain"))),
     ("The value", (
@@ -75,15 +80,74 @@ def option_title(number, post):
     return f"{title} ({label}, needs your line)" if post.get("voice") == "fill_in" else f"{title} ({label})"
 
 
-def option_notes(post):
-    """(label, text, url) rows shown under an option; never part of the copy."""
-    rows = []
-    if post.get("image"):
-        rows.append(("Image idea", post["image"]["suggestion"], post["image"]["source_url"]))
-    if post.get("model"):
-        model = post["model"]
-        rows.append(("Modeled on", f"{model['author']}'s post ({model['pattern']})", model["url"]))
-    return rows
+def image_id(number):
+    return f"option-{number}"
+
+
+def feature_sources(post, features):
+    """Public source URLs of the feature this option is about, including its link."""
+    related = {post["url"]}
+    for item in features:
+        sources = {source["url"] for source in item["sources"]}
+        if item["classification"] == "public" and post["url"] in sources:
+            related |= sources
+    return related
+
+
+def validate_graphic(post, features):
+    """A made explainer diagram about this option's feature; never a page screenshot."""
+    if any(key in post for key in ("visual", "visual_gap", "card", "image")):
+        raise ValueError("Release screenshots and image cards are retired; give each option a graphic spec")
+    spec = post.get("graphic")
+    if spec is None:
+        return
+    if not isinstance(spec, dict) or "status" in spec:
+        raise ValueError("A graphic is a spec without a status pill: title, subtitle, source_url, diagram, callouts, code, caption")
+    source_url(spec.get("source_url"))
+    if spec["source_url"] not in feature_sources(post, features):
+        raise ValueError("Graphic source_url must be a captured source of this option's feature")
+    # Builds the graphic HTML without rendering, so length and structure errors surface early.
+    graphics.page_html(spec)
+
+
+def verbatim(value, page_text):
+    """value occurs in the page text; <placeholder> tokens stand for any value.
+
+    Whitespace is ignored: captured code blocks space out every token (t . customer_id).
+    """
+    def squash(item):
+        return re.sub(r"\s+", "", item.replace("\u2019", "'"))
+    parts = re.split(r"<[^>]+>", squash(value))
+    # A placeholder stands for one short value, not a stretch of the page.
+    pattern = r"(?:<[^>]+>|.{1,60}?)".join(re.escape(part) for part in parts)
+    return re.search(pattern, squash(page_text)) is not None
+
+
+def check_graphic_sources(data, evidence_dir):
+    """Every code line and quote on a graphic is verbatim on one of its feature's captured pages."""
+    for number, post in enumerate(post_options(data), 1):
+        if not post.get("graphic"):
+            continue
+        pages = []
+        for url in sorted(feature_sources(post, data["features"])):
+            record = json.loads((Path(evidence_dir) / f"{source_key(url)}.json").read_text())
+            pages.append(record["text"])
+        for value in graphics.verbatim_strings(post["graphic"]):
+            if not any(verbatim(value, page) for page in pages):
+                raise ValueError(f"Option {number} graphic shows text that is not on its feature's captured pages: {value}")
+
+
+def render_graphics(data, output):
+    """{option number: PNG bytes}, saved as graphics/option-N.png."""
+    rendered = {}
+    folder = output / "graphics"
+    for number, post in enumerate(post_options(data), 1):
+        if post.get("graphic"):
+            folder.mkdir(exist_ok=True)
+            path = folder / f"{image_id(number)}.png"
+            graphics.render(post["graphic"], path)
+            rendered[number] = path.read_bytes()
+    return rendered
 
 
 def phrases(value):
@@ -97,8 +161,8 @@ def load_references(path):
 
 
 def validate_modeling(posts, public, references=None):
-    """Voice mix, fill-in slot, no code, a real reference post, and an image idea."""
-    if not any(post.get("voice") or post.get("model") or post.get("image") for post in posts):
+    """Voice mix, fill-in slot, no code, a real reference post, one on a fixed reference."""
+    if not any(post.get("voice") or post.get("model") for post in posts):
         return
     voices = [post.get("voice") for post in posts]
     if sorted(voices, key=str) != sorted([voice for voice, count in VOICES.items() for _ in range(count)]):
@@ -122,13 +186,12 @@ def validate_modeling(posts, public, references=None):
             if phrases(post["text"]) & phrases(references[model["url"]]["content"]):
                 raise ValueError("Option copies wording from its model post; borrow the structure only")
         models.append(model["url"])
-        image = post.get("image") or {}
-        if not 3 <= len(text(image.get("suggestion")).split()) <= 30:
-            raise ValueError("Image idea must be 3-30 words")
-        if image.get("source_url") not in public:
-            raise ValueError("Image idea must come from an included public source")
     if len(set(models)) != len(models):
         raise ValueError("Model each option on a different post")
+    # Set only when the config names fixed_reference_profiles; then one option must use them.
+    fixed = {url for url, post in (references or {}).items() if post.get("fixed")}
+    if fixed and not fixed & set(models):
+        raise ValueError("Model at least one option on a fixed reference author's post")
 
 
 def validate_shapes(posts, previous_shapes=None):
@@ -146,8 +209,11 @@ def validate_shapes(posts, previous_shapes=None):
         raise ValueError("Rotate shapes: this issue repeats the previous issue's exact mix")
 
 
-def email_html(data):
-    """SMTP body fragment, not a standalone report; compatible with SafeHTML."""
+def email_html(data, images=()):
+    """SMTP body fragment, not a standalone report; compatible with SafeHTML.
+
+    images lists option numbers whose graphic travels inline as cid:option-N.
+    """
     def paragraph(value, style=""):
         return f'<p style="margin:0 0 12px;line-height:1.55;{style}">{html.escape(value)}</p>'
 
@@ -188,14 +254,15 @@ def email_html(data):
         if "posts" in data:
             parts.append(heading(option_title(number, post)))
         parts.append('<div class="post-copy">')
-        parts.extend(paragraph(value, "font-size:15px;color:#123548;") for value in post["text"].split("\n\n"))
+        # Keep single line breaks (arrow/list lines) so the copied post matches the plain text.
+        parts.extend(paragraph(value, "font-size:15px;color:#123548;").replace("\n", "<br>\n") for value in post["text"].split("\n\n"))
         parts += ['</div>', link(post["url"], post["url"])]
-        for label, value, url in option_notes(post):
+        if number in images:
+            # 1080x1350 portrait graphic, shown at 480 px so the next option stays in reach.
             parts.append(
-                '<p class="option-note" style="margin:0 0 6px;font-size:13px;line-height:1.5;color:#5B6B75;"><strong>'
-                + html.escape(label) + ':</strong> ' + html.escape(value) + ' <a href="'
-                + html.escape(url, quote=True) + '" style="color:#0879A5;overflow-wrap:anywhere;">'
-                + html.escape("source" if label == "Image idea" else "view post") + '</a></p>'
+                '<p class="option-image" style="margin:8px 0 12px;">'
+                f'<img src="cid:{image_id(number)}" alt="{html.escape(graphics.alt_text(post["graphic"]), quote=True)}" '
+                'width="480" style="width:100%;max-width:480px;height:auto;border:1px solid #DAE5EB;"></p>'
             )
     parts += [
         '<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;">'
@@ -480,6 +547,8 @@ def validate(data, previous_shapes=None, references=None):
     if "posts" in data:
         public = {source["url"] for item in data["features"] if item["classification"] == "public" for source in item["sources"]}
         validate_modeling(posts, public, references)
+        for post in posts:
+            validate_graphic(post, data["features"])
     for item in data["features"]:
         internal = item["classification"] == "internal"
         if item["classification"] not in {"public", "internal"}:
@@ -512,7 +581,11 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
     if require_three_posts and not all(post.get("shape") for post in data["posts"]):
         raise ValueError("Scheduled issues require a shape on every post option")
     if require_three_posts and (reference_posts is None or not all(post.get("voice") for post in data["posts"])):
-        raise ValueError("Scheduled issues require voices, model posts and image ideas checked against --references")
+        raise ValueError("Scheduled issues require voices and model posts checked against --references")
+    if require_three_posts and not all(post.get("graphic") for post in data["posts"]):
+        raise ValueError("Scheduled issues require a graphic spec on every option")
+    if require_three_posts and sum(item["category"] == AI_CATEGORY for item in data["features"]) < MIN_AI_FEATURES:
+        raise ValueError("Scheduled issues require at least one AI feature; widen the AI lookback before sending without one")
     if smtp_source_id is not None:
         if evidence_dir is None:
             raise ValueError("SMTP output requires captured evidence")
@@ -522,7 +595,12 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
             raise ValueError("SMTP source ID must be a short linkedin- identifier")
     if evidence_dir is not None:
         verify_evidence(data, evidence_dir)
+        check_graphic_sources(data, evidence_dir)
+    elif any(post.get("graphic") for post in post_options(data)):
+        raise ValueError("Graphics require captured evidence for their code and quotes")
     output.mkdir(parents=True, exist_ok=True)
+    visuals = render_graphics(data, output)
+    image_paths = {number: output.resolve() / "graphics" / f"{image_id(number)}.png" for number in visuals}
     public = [item for item in data["features"] if item["classification"] == "public"]
     internal = [item for item in data["features"] if item["classification"] == "internal"]
     lines = [
@@ -533,7 +611,8 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
         if "posts" in data:
             lines.append(f"### {option_title(number, post)}")
         lines.extend([post["text"], post["url"]])
-        lines.extend(f"{label}: {value} {url}" for label, value, url in option_notes(post))
+        if number in image_paths:
+            lines.append(f"Graphic: {graphics.alt_text(post['graphic'])}")
     lines.extend([f"Post to Linkedin: {COMPOSER}", "---", "## This week's sales brief"])
     feature_number = 0
     for section, items in [("Public features", public), ("INTERNAL ONLY - DO NOT POST OR FORWARD EXTERNALLY", internal)]:
@@ -568,19 +647,24 @@ def render(data, output, evidence_dir=None, smtp_source_id=None, require_three_p
     copies = []
     for number, post in enumerate(post_options(data), 1):
         label = f"## {option_title(number, post)}\n\n" if "posts" in data else ""
-        notes = "".join(f"\n\n{name}: {value} {url}" for name, value, url in option_notes(post))
+        notes = f"\n\nGraphic: {image_paths[number]}" if number in image_paths else ""
         copies.append(label + post["text"] + "\n\n" + post["url"] + notes)
     (output / "latest-post.md").write_text("\n\n".join(copies) + "\n")
     if smtp_source_id is not None:
         subject = "Weekly Feature Digest | " + data["date"]
         if smtp_source_id.startswith("linkedin-test-"):
             subject = "[Test] " + subject
-        batch = {"scope": "individual", "messages": [{
+        message = {
             "to": settings()["owner"], "subject": subject, "text": email,
-            "html": email_html(data), "source_id": smtp_source_id,
-        }]}
+            "html": email_html(data, visuals), "source_id": smtp_source_id,
+        }
+        if visuals:
+            # Inline (cid) PNGs inside the message; safe-email-send rejects remote body images.
+            message["inline_images"] = [{"cid": image_id(number), "png_base64": base64.b64encode(png).decode("ascii")}
+                                        for number, png in visuals.items()]
+        batch = {"scope": "individual", "messages": [message]}
         (output / "smtp-message.json").write_text(json.dumps(batch, ensure_ascii=True, indent=2) + "\n")
-    print(json.dumps({"email_payload": str(output / "email-payload.json"), "features": len(data["features"]), "post_words": [len(post["text"].split()) for post in post_options(data)], "post_shapes": [post.get("shape") for post in post_options(data)], "validation": "passed"}))
+    print(json.dumps({"email_payload": str(output / "email-payload.json"), "features": len(data["features"]), "post_words": [len(post["text"].split()) for post in post_options(data)], "post_shapes": [post.get("shape") for post in post_options(data)], "images": [str(path) for path in image_paths.values()], "ai_features": sum(item["category"] == AI_CATEGORY for item in data["features"]), "validation": "passed"}))
 
 
 if __name__ == "__main__":

@@ -7,8 +7,11 @@ digest. Each issue has:
   recent high-engagement Snowflake post (pulled read-only through HarvestAPI, a
   few cents a run), uses a different rotating shape, and links the most useful
   official public page. Two are ready to paste; one leaves a bracketed line for
-  something only you can say. Each comes with an image idea. No code in posts.
-- **Up to five sales feature briefs** covering the buyer, pain, value, fair
+  something only you can say. Each comes with a 1080x1350 PNG explainer
+  graphic (one diagram of how the feature works, drawn locally with headless
+  Chrome) shown inline in the email. No code in posts.
+- **Up to five sales feature briefs**, always including at least one AI feature,
+  covering the buyer, pain, value, fair
   alternative, a talk track, and honest illustrative math, plus relevant decks
   (Compass/Seismic and public Slack), a product contact, and the feature's channel.
 
@@ -27,7 +30,8 @@ vendor/safe-email-send/      # vendored SMTP queue CLI (upstream: smtp-safe-emai
 
 ## Install
 
-Requires macOS, Python 3.11+, [uv](https://docs.astral.sh/uv/), and a Gmail or
+Requires macOS, Python 3.11+, Google Chrome (headless, for the post graphics;
+set `CHROME_PATH` if it is not in `/Applications`), [uv](https://docs.astral.sh/uv/), and a Gmail or
 Google Workspace account that permits app passwords and IMAP.
 
 1. Clone this repo anywhere.
@@ -45,13 +49,17 @@ Google Workspace account that permits app passwords and IMAP.
 5. Ask CoCo: "set up the linkedin feature digest". It writes your settings to
    `~/.config/linkedin-feature-digest/config.json` (see
    `skills/linkedin-feature-digest/config.example.json`) and asks whether you
-   want unattended self-only sending. Then ask it to "send an example digest" or
+   want unattended self-only sending. Optional keys: `graphic_logo` (a PNG
+   for the graphic header; none ships with the repo) and
+   `fixed_reference_profiles` (LinkedIn authors whose recent posts are always
+   offered as models). Then ask it to "send an example digest" or
    to schedule it.
 
 ## Privacy
 
 The repo holds no personal identity, Slack workspace or channel IDs, credentials,
-or internal links. Fixtures are synthetic. Your config, consent record, run
+or internal links. Fixtures are synthetic. The bundled fonts (Lato, JetBrains
+Mono) are under the SIL Open Font License; see `skills/linkedin-feature-digest/scripts/fonts/`. Your config, consent record, run
 folders, evidence, and history stay on your machine outside the repo. Review
 `git status` before pushing a fork.
 

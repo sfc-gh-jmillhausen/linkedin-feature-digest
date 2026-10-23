@@ -1,6 +1,6 @@
 ---
 name: linkedin-feature-digest
-description: "Build and self-email a twice-weekly Snowflake Weekly Feature Digest: three copy-ready LinkedIn post options (each modeled on the structure of a recent high-engagement Snowflake post pulled through HarvestAPI, in a different rotating shape, two ready-to-paste opinions plus one with a line for the user to fill in, an image idea, and the best public reading link, preferring a useful blog or guide over a bare release note) plus up to five sales feature briefs (buyer, pain, value, alternative, talk track, honest illustrative math) with decks from Compass and public Slack, product contacts, and feature channels. Evidence-gated against official public pages; sent only to the owner via safe-email-send; never posts to LinkedIn. Use whenever the user asks for a feature digest, weekly/Monday/Thursday feature brief, what shipped in Snowflake for sales, LinkedIn post ideas about new Snowflake features, release-note posts, or to set up, run, test, or schedule this digest, even if they don't name the skill."
+description: "Build and self-email a twice-weekly Snowflake Weekly Feature Digest: three copy-ready LinkedIn post options (each modeled on the structure of a recent high-engagement Snowflake post pulled through HarvestAPI, in a different rotating shape, two ready-to-paste opinions plus one with a line for the user to fill in, a 1080x1350 PNG explainer graphic of how the feature works embedded inline, and the best public reading link, preferring a useful blog or guide over a bare release note) plus up to five sales feature briefs, at least one of them an AI feature (buyer, pain, value, alternative, talk track, honest illustrative math) with decks from Compass and public Slack, product contacts, and feature channels. Evidence-gated against official public pages; sent only to the owner via safe-email-send; never posts to LinkedIn. Use whenever the user asks for a feature digest, weekly/Monday/Thursday feature brief, what shipped in Snowflake for sales, LinkedIn post ideas about new Snowflake features, release-note posts, or to set up, run, test, or schedule this digest, even if they don't name the skill."
 ---
 
 # LinkedIn Feature Digest
@@ -33,6 +33,11 @@ Not for publishing to LinkedIn (it never posts), customer newsletters, or mass e
 
 - Python 3.11+ with `certifi` (for TLS evidence capture), `uv`, and `node` 18+
   (optional, for visual QA).
+- Google Chrome, run headless to draw the post graphics (fonts are bundled in
+  `scripts/fonts/`). The macOS default path is used unless `CHROME_PATH` or the
+  config's `chrome_path` points elsewhere. Optional: a PNG logo for the graphic
+  header via the config's `graphic_logo` (or `LINKEDIN_DIGEST_LOGO`); without
+  one the header stays empty. No logo ships with the repo.
 - Optional: a [HarvestAPI](https://docs.harvestapi.io) key in `HARVEST_API_KEY`
   or `~/.config/harvestapi/key` (mode 600), used read-only to pull a few recent
   high-engagement LinkedIn posts as structural models each run (a few cents).
@@ -53,6 +58,8 @@ Not for publishing to LinkedIn (it never posts), customer newsletters, or mass e
 2. **Ask** (one `ask_user_question` call) for: owner email (must equal the
    sender's configured From address), timezone, issue days and time (default
    Monday and Thursday 08:00), work folder (default `~/linkedin-feature-digest-runs`).
+   Optionally: a logo PNG for the graphics, and LinkedIn authors whose recent
+   posts should always be offered as models (`fixed_reference_profiles`).
 3. **Discover** the Slack workspace ID, workspace hosts, and the release-feed /
    doc-update / product channels the user wants scanned. Resolve channel IDs with
    Slack channel search and show them to the user to confirm. If a workspace ID
@@ -82,7 +89,8 @@ consent choice. Offer a test send.
      double-send.
    - `scripts/reference_posts.py --output <RUN_DIR>`: pulls recent
      high-engagement Snowflake product posts via HarvestAPI into
-     `references.json` (structural models only; never copied).
+     `references.json` (structural models only; never copied). Authors in the
+     optional `fixed_reference_profiles` are pulled first and marked `fixed`.
    - `scripts/source_evidence.py <candidate.json> --output <RUN_DIR>/evidence`:
      fetches each public URL on the allowlisted hosts with TLS, stores bytes,
      text, and sha256.
@@ -91,9 +99,13 @@ consent choice. Offer a test send.
      [--previous-shapes <last issue's post_shapes>] --references <RUN_DIR>/references.json`:
      validates schema, evidence quotes, resource links, and copy rules (each post
      needs a distinct shape and a different model post from the references, no
-     copied wording or code, two opinion options plus one fill-in, an image idea
-     from a captured public page; the last issue's exact shape mix is rejected); writes
-     `email-body.md`, `email-payload.json`, `smtp-message.json`, `latest-post.md`.
+     copied wording or code, two opinion options plus one fill-in, a graphic
+     spec about the option's own feature whose code and quotes are verbatim on
+     its captured pages, one option on a `fixed` reference when any exist, at
+     least one `AI` feature; the last issue's exact shape mix is rejected);
+     writes `email-body.md`, `email-payload.json`, `smtp-message.json`
+     (graphics as `inline_images`), `latest-post.md`, and
+     `graphics/option-N.png`.
    - `scripts/check_sender_html.py <RUN_DIR>/smtp-message.json` (run with the
      sender's environment): confirms the HTML passes the sender allowlist.
    - `scripts/preview_qa.mjs`: optional visual QA via local Chrome DevTools.
@@ -144,5 +156,7 @@ sync when either changes.
 - `Unapproved source host`: the URL is not on `public_hosts`; find an official page
   rather than widening the allowlist unattended.
 - Sender HTML rejected: do not edit the sender; fix the content or renderer.
+- Graphic `overflow` or `sparse`: edit the spec (cut or add a node, callout or
+  code strip), never truncate. `Google Chrome not found`: set `CHROME_PATH`.
 - Tests: `cd <SKILL_DIR> && python3 -m unittest discover -s tests` (synthetic
   config, no network, no mail).

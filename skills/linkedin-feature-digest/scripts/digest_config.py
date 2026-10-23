@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 DEFAULT_PATH = Path.home() / ".config" / "linkedin-feature-digest" / "config.json"
 EMAIL = re.compile(r"[a-z0-9._%+-]+@[a-z0-9-]+(?:\.[a-z0-9-]+)*\.[a-z]{2,63}")
 HOST = re.compile(r"[a-z0-9-]+(?:\.[a-z0-9-]+)+")
+PROFILE = re.compile(r"https://www\.linkedin\.com/in/[A-Za-z0-9_%-]+/?")
 
 
 def config_path(path=None):
@@ -24,6 +25,31 @@ def _hosts(values, name):
     if not isinstance(values, list) or not values or not all(isinstance(v, str) and HOST.fullmatch(v) for v in values):
         raise ValueError(f"{name} must be a nonempty list of lowercase hostnames")
     return frozenset(values)
+
+
+def _optional_path(value, name):
+    if value is None:
+        return None
+    if not isinstance(value, str) or not value.strip():
+        raise ValueError(f"{name} must be a file path or null")
+    return Path(value).expanduser()
+
+
+def _profiles(values):
+    """Optional LinkedIn authors whose recent posts are always pulled as references."""
+    if not isinstance(values, list) or not all(
+        isinstance(v, dict) and set(v) == {"url", "name"} and isinstance(v["url"], str) and PROFILE.fullmatch(v["url"])
+        and isinstance(v["name"], str) and v["name"].strip() for v in values
+    ):
+        raise ValueError("fixed_reference_profiles must list {url, name} objects with https://www.linkedin.com/in/ URLs")
+    if len({v["url"] for v in values}) != len(values):
+        raise ValueError("fixed_reference_profiles must not repeat a profile")
+    return tuple({"url": v["url"], "name": v["name"].strip()} for v in values)
+
+
+def load_if_present(path=None):
+    """The config when one exists; None for standalone script use without a config."""
+    return load(path) if config_path(path).is_file() else None
 
 
 @lru_cache(maxsize=None)
@@ -46,6 +72,9 @@ def load(path=None):
     team = slack.get("team_id", "")
     if not re.fullmatch(r"[TE][A-Z0-9]+", team):
         raise ValueError("slack.team_id must be your workspace ID (starts with T or E)")
+    keep = raw.get("fixed_reference_keep", 5)
+    if type(keep) is not int or not 1 <= keep <= 10:
+        raise ValueError("fixed_reference_keep must be a whole number from 1 to 10")
     return {
         "owner": owner,
         "timezone": raw["timezone"],
@@ -56,4 +85,8 @@ def load(path=None):
         "slack_hosts": _hosts(slack.get("hosts"), "slack.hosts"),
         "compass_hosts": _hosts(raw.get("compass_hosts"), "compass_hosts"),
         "public_hosts": _hosts(raw.get("public_hosts"), "public_hosts"),
+        "fixed_reference_profiles": _profiles(raw.get("fixed_reference_profiles", [])),
+        "fixed_reference_keep": keep,
+        "graphic_logo": _optional_path(raw.get("graphic_logo"), "graphic_logo"),
+        "chrome_path": _optional_path(raw.get("chrome_path"), "chrome_path"),
     }

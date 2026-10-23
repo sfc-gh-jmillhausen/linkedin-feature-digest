@@ -16,15 +16,18 @@ def check(path):
     message = batch["messages"][0]
     if message["to"] != digest_config.load()["owner"]:
         raise ValueError("Expected owner-only preview")
-    if set(message) != {"to", "subject", "text", "html", "source_id"}:
+    if not {"to", "subject", "text", "html", "source_id"} <= set(message) <= {"to", "subject", "text", "html", "source_id", "inline_images"}:
         raise ValueError("Unexpected SMTP fields")
+    # Graphic PNGs travel inside the message; the HTML must show exactly these cids.
+    inline_ids = frozenset(image["cid"] for image in message.get("inline_images", []))
     if not 0 < len(message["text"]) <= 50000 or not 0 < len(message["html"]) <= 100000:
         raise ValueError("Body size outside sender limits")
-    validate_html(message["html"])
+    validate_html(message["html"], inline_ids=inline_ids)
     print(json.dumps({
         "html_validation": "passed",
         "text_characters": len(message["text"]),
         "html_characters": len(message["html"]),
+        "inline_images": sorted(inline_ids),
         "scope": "unsigned body only; no preparation, queue access, or send",
     }))
 

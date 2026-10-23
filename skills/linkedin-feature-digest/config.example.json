@@ -14,5 +14,8 @@
   },
   "compass_hosts": ["your-tenant.seismic.com"],
   "public_hosts": ["docs.snowflake.com", "www.snowflake.com", "developers.snowflake.com"],
+  "fixed_reference_profiles": [],
+  "fixed_reference_keep": 5,
+  "graphic_logo": null,
   "workdir": "~/linkedin-feature-digest-runs"
 }
