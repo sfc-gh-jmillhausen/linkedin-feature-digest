@@ -44,6 +44,26 @@ expire within 24 hours of the check; it shortens batch expiry. This is supplied
 evidence, not verification of consent by this program. Unknown JSON fields,
 CC/BCC/attachments and duplicate source IDs/content are rejected.
 
+## Inline PNG images
+
+A message may embed up to six PNGs that travel inside the email (a
+`multipart/related` part with `Content-Disposition: inline`). Nothing is hosted
+or fetched, and recipients see the images without "load remote images". Add
+`inline_images` beside `html`:
+
+```json
+"html": "<p>Card below</p><img src=\"cid:card-1\" alt=\"Card\" width=\"600\">",
+"inline_images": [{"cid": "card-1", "png_base64": "iVBORw0KGgo..."}]
+```
+
+Rules: `cid` is a unique lowercase token (`a-z`, `0-9`, `-`, max 40); the data
+must be a complete PNG of at most 1.5 MB and 4000 px per side, 5 MB in total.
+The HTML must show every supplied image and may reference no other image; remote
+`https` body images stay rejected. `img` accepts only `src`, `alt`, `width`,
+`height`, `style` and `class`. Image bytes are part of the approved MIME digest
+and the duplicate-content key. Preview lists each image's cid, size,
+dimensions and SHA-256 instead of the data.
+
 ## Start only when ready
 
 ```sh

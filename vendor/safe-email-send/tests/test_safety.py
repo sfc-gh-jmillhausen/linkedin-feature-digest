@@ -549,3 +549,85 @@ def test_cancel_unsent_allows_reprepare_but_sent_blocks(store, config):
     store.finish(item, transport.Outcome("ACCEPTED", "ok"), NOW)
     with pytest.raises(SafetyError):
         store.add(prepare_messages(config, sample(), NOW))
+
+
+def png(width=4, height=3, seed=0):
+    import struct
+    import zlib
+
+    def chunk(kind, data):
+        return struct.pack(">I", len(data)) + kind + data + struct.pack(">I", zlib.crc32(kind + data))
+    rows = b"".join(b"\x00" + bytes([seed % 256, 0, 0]) * width for _ in range(height))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", width, height, 8, 2, 0, 0, 0))
+            + chunk(b"IDAT", zlib.compress(rows)) + chunk(b"IEND", b""))
+
+
+def inline(cid="card-1", data=None):
+    import base64
+    return {"cid": cid, "png_base64": base64.b64encode(data or png()).decode("ascii")}
+
+
+def test_inline_png_builds_related_mime(config):
+    item = prepare_messages(config, sample(html='<p>See card</p><img src="cid:card-1" alt="Card" width="600">',
+                                           inline_images=[inline()]), NOW)["messages"][0]
+    mail = BytesParser(policy=policy.default).parsebytes(item["mime"].encode("ascii"))
+    assert mail.get_content_type() == "multipart/alternative"
+    plain, related = mail.get_payload()
+    assert plain.get_content_type() == "text/plain"
+    assert related.get_content_type() == "multipart/related"
+    body, image = related.get_payload()
+    assert body.get_content_type() == "text/html"
+    assert image.get_content_type() == "image/png" and image.get_content_disposition() == "inline"
+    assert image["Content-ID"] == "<card-1@inline.example.com>"
+    assert image.get_content() == png()
+    assert 'src="cid:card-1@inline.example.com"' in body.get_content()
+    assert item["inline_images"][0]["width"] == 4 and item["inline_images"][0]["bytes"] == len(png())
+    assert body.get_content().count(MARKER) == 1
+
+
+@pytest.mark.parametrize("overrides", [
+    {"html": '<p>x</p><img src="cid:card-1">'},  # image referenced but not supplied
+    {"html": "<p>no image shown</p>", "inline_images": [inline()]},  # supplied but not shown
+    {"inline_images": [inline()]},  # images without an HTML body
+    {"html": '<p>x</p><img src="https://tracker.example.org/p.png">', "inline_images": [inline()]},
+    {"html": '<p>x</p><img src="cid:other">', "inline_images": [inline()]},
+    {"html": '<p>x</p><img src="cid:card-1" onerror="x()">', "inline_images": [inline()]},
+    {"html": '<p>x</p><img src="cid:card-1" style="background:url(x)">', "inline_images": [inline()]},
+    {"html": '<p>x</p><img src="cid:Card_1">', "inline_images": [inline("Card_1")]},
+    {"html": '<p>x</p><img src="cid:card-1">', "inline_images": [{"cid": "card-1", "png_base64": "not base64!"}]},
+    {"html": '<p>x</p><img src="cid:card-1">', "inline_images": [inline(data=b"GIF89a" + b"\x00" * 40)]},
+    {"html": '<p>x</p><img src="cid:card-1">', "inline_images": [inline(data=png()[:-12])]},
+    {"html": '<p>x</p><img src="cid:card-1">', "inline_images": [inline(data=png(width=5000))]},
+    {"html": '<p>x</p><img src="cid:card-1">', "inline_images": [{**inline(), "path": "/etc/passwd"}]},
+    {"html": '<p>x</p><img src="cid:card-1">', "inline_images": [inline(), inline()]},
+    {"html": '<p>x</p><img src="cid:card-1">', "inline_images": []},
+])
+def test_reject_unsafe_inline_images(config, overrides):
+    with pytest.raises(SafetyError):
+        prepare_messages(config, sample(**overrides), NOW)
+
+
+def test_inline_images_change_digest_and_content_key(store, config):
+    page = '<p>See card</p><img src="cid:card-1" alt="Card">'
+    first = prepare_messages(config, sample(1, html=page, inline_images=[inline(data=png(seed=1))]), NOW)
+    second = prepare_messages(config, sample(1, html=page, inline_images=[inline(data=png(seed=2))]), NOW)
+    assert first["messages"][0]["content_key"] != second["messages"][0]["content_key"]
+    plain = prepare_messages(config, sample(1), NOW)
+    assert "inline_images" in plain["messages"][0] and plain["messages"][0]["inline_images"] == []
+    store.add(first)
+    with pytest.raises(SafetyError):
+        store.add(prepare_messages(config, sample(1, html=page, inline_images=[inline(data=png(seed=1))],
+                                              source_id="message-other"), NOW))
+
+
+def test_cli_preview_summarizes_inline_images(config, tmp_path, capsys):
+    save_config(config)
+    file = tmp_path / "input.json"
+    file.write_text(json.dumps(sample(html='<p>See card</p><img src="cid:card-1" alt="Card">', inline_images=[inline()])))
+    main(["prepare", str(file)])
+    output = json.loads(capsys.readouterr().out)
+    main(["preview", output["batch_id"]])
+    raw = capsys.readouterr().out
+    preview = json.loads(raw)
+    assert preview["messages"][0]["inline_images"][0]["cid"] == "card-1"
+    assert "png_base64" not in raw and "mime" not in preview["messages"][0]

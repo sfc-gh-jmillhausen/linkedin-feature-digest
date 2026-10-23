@@ -9,7 +9,8 @@ Google Cloud project is not required. Do not work around blocked IMAP policy.
    Examples are in `examples/`. Keep important contact details as text. Allowed
    HTML is intentionally limited; no scripts, forms or stylesheets. Only the
    signature file may contain static HTTPS logo images (no query string or
-   credentials); message bodies cannot add images. The program never fetches them,
+   credentials). Message bodies cannot add remote images; they may only embed
+   supplied PNGs (`inline_images`, see `docs/operations.md`). The program never fetches them,
    and recipients may block logo loading.
 2. Copy `.env.example` to a private location and edit its nonsecret values and
    absolute signature paths. The parser is literal `KEY=VALUE`: optional surrounding

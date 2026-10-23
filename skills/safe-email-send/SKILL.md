@@ -49,7 +49,11 @@ no email. Do not run network diagnostics without authorization.
 
 The user supplies final unsigned text/HTML and exact recipients, one per message.
 Create a structured JSON batch following `examples/message.example.json`.
-Reject unknown fields; CC/BCC/attachments are not supported in v0.1.
+Reject unknown fields; CC/BCC/attachments are not supported in v0.1. Inline PNGs are
+supported through `inline_images` (cid + base64 PNG, shown in the HTML by
+`<img src="cid:...">`; see `docs/operations.md`). Never add remote body images.
+Preview reports each image's size, dimensions and SHA-256; check them against the
+files you intended to send.
 
 Run `safe-email-send prepare /absolute/path/to/messages.json`. Then run
 `safe-email-send preview BATCH_ID` and present the complete recipients, signed
